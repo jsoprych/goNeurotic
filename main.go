@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/jsoprych/goneurotic/network" // Adjust the import path based on your actual repository structure
+	"github.com/jsoprych/goneurotic/network"
 )
 
 func main() {
