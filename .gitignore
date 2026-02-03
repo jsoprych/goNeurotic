@@ -20,3 +20,24 @@
 # Go workspace file
 go.work
 go.work.sum
+
+# Project-specific ignores
+/bin/
+/dist/
+/goneurotic
+
+# Test coverage files
+coverage.out
+coverage.html
+
+# Dependency graph
+deps.png
+
+# Demo output files
+*.json
+*.csv
+*.png
+*.pdf
+
+# Default model file
+model.json

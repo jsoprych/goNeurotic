@@ -1,0 +1,270 @@
+# GolangCI-Lint configuration for GoNeurotic
+# For full configuration options see: https://golangci-lint.run/usage/configuration/
+
+# Run with: golangci-lint run
+
+run:
+  # Default concurrency is the number of available CPUs
+  concurrency: 4
+
+  # Timeout for analysis
+  timeout: 5m
+
+  # Include test files
+  tests: true
+
+  # Modules download mode
+  modules-download-mode: readonly
+
+  # Skip directories
+  skip-dirs:
+    - vendor
+    - dist
+    - bin
+    - .git
+
+  # Skip files
+  skip-files:
+    - ".*\\.pb\\.go$"
+    - ".*_test\\.go$"
+    - ".*_generated\\.go$"
+
+# Linter settings
+linters:
+  # Enable specific linters
+  enable:
+    # Default Go linters
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - ineffassign
+    - typecheck
+
+    # Style and formatting
+    - gofmt
+    - gocyclo
+    - gocritic
+    - goconst
+    - gosec
+
+    # Import management
+    - goimports
+
+    # Performance
+    - prealloc
+
+    # Complexity
+    - nestif
+    - gocognit
+
+    # Documentation
+    - godox
+
+    # Error handling
+    - errorlint
+
+    # SQL injection
+    - sqlclosecheck
+
+    # Context handling
+    - bodyclose
+
+    # Test linters
+    - testpackage
+
+  # Disable specific linters
+  disable:
+    - maligned  # Deprecated
+    - dupl      # Can be noisy
+    - wsl       # Controversial formatting rules
+    - lll       # Line length limit (handled by gofmt/goimports)
+
+  # Enable all available linters except explicitly disabled
+  enable-all: false
+
+  # Presets
+  presets:
+    - bugs
+    - comment
+    - complexity
+    - error
+    - format
+    - import
+    - performance
+    - sql
+    - style
+    - test
+    - unused
+
+# Linter-specific settings
+linters-settings:
+  govet:
+    check-shadowing: true
+    settings:
+      printf:
+        funcs:
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Infof
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Warnf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Errorf
+          - (github.com/golangci/golangci-lint/pkg/logutils.Log).Fatalf
+
+  gocyclo:
+    min-complexity: 15
+
+  gocritic:
+    enabled-tags:
+      - performance
+      - style
+      - diagnostic
+      - experimental
+    disabled-checks:
+      - hugeParam  # Can be too strict for neural network code
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gocognit:
+    min-complexity: 30
+
+  nestif:
+    min-complexity: 5
+
+  prealloc:
+    simple: true
+    range-loops: true
+    for-loops: false
+
+  staticcheck:
+    go: "1.21"
+    checks: ["all"]
+
+  gosec:
+    excludes:
+      - G101 # Look for hard coded credentials
+      - G104 # Audit errors not checked
+      - G204 # Audit command injection
+      - G307 # Deferring a method which returns an error
+
+  errorlint:
+    errorf: true
+    asserts: true
+    comparison: true
+
+  sqlclosecheck:
+    # No additional settings
+
+  bodyclose:
+    # No additional settings
+
+  testpackage:
+    skip-regexp: "^(main|integration)_test$"
+
+  godox:
+    keywords:
+      - BUG
+      - FIXME
+      - HACK
+      - OPTIMIZE
+      - NOTE
+      - TODO
+      - XXX
+
+  gofmt:
+    simplify: true
+
+# Issues configuration
+issues:
+  # Maximum issues count per linter
+  max-issues-per-linter: 0
+  max-same-issues: 0
+
+  # Exclude specific issues
+  exclude-rules:
+    # Exclude lll issues for test files
+    - linters:
+        - lll
+      text: "line is too long"
+      source: ".*_test\\.go$"
+
+    # Exclude some common false positives
+    - linters:
+        - staticcheck
+      text: "SA1019:"
+
+    # Allow underscores in test function names
+    - linters:
+        - testpackage
+      text: "should be in a separate `.*_test` package"
+
+    # Allow long lines in string literals and comments
+    - linters:
+        - lll
+      text: "line is too long"
+      source: "(?i).*(comment|string literal|import).*"
+
+    # Exclude certain error messages in test files
+    - linters:
+        - errcheck
+      text: "Error return value of .* is not checked"
+      source: ".*_test\\.go$"
+
+    # Exclude "should not use dot imports" for certain packages
+    - linters:
+        - goimports
+      text: "should not use dot imports"
+      source: ".*_test\\.go$"
+
+  # Include only specific issues (empty = include all)
+  include:
+    - EXC0011 # gofmt: File is not `gofmt`-ed
+    - EXC0012 # gofmt: File is not `goimports`-ed
+
+  # Exclude specific files
+  exclude-files:
+    - ".*generated\\.go$"
+
+  # Exclude specific directories
+  exclude-dirs:
+    - vendor
+    - third_party
+
+# Severity configuration
+severity:
+  default-severity: error
+  rules:
+    # Treat style issues as warnings
+    - severity: warning
+      linters:
+        - goconst
+        - gocyclo
+        - gocognit
+        - nestif
+        - godox
+
+    # Treat formatting issues as warnings
+    - severity: warning
+      linters:
+        - gofmt
+        - goimports
+
+    # Treat test issues as warnings
+    - severity: warning
+      linters:
+        - testpackage
+
+# Output configuration
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-line: true
+
+# Path prefixes to ignore
+path-prefixes:
+  - github.com/goneurotic/
+
+# Version of golangci-lint
+version: 1.54.2
