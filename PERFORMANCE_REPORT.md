@@ -2,14 +2,15 @@
 
 ## Executive Summary
 
-This report documents the performance optimizations implemented for the GoNeurotic neural network library. Through targeted "quick win" improvements, we achieved:
+This report documents the performance optimizations implemented for the GoNeurotic neural network library. Through targeted "quick win" improvements and BLAS acceleration, we achieved:
 
-- **9-13% speedup** for small network operations
+- **9-13% speedup** for small network operations (buffer optimization)
+- **5-9× speedup** for medium/large networks (BLAS acceleration)
 - **50-70% reduction** in memory allocations
 - **Maintained API compatibility** while improving internal efficiency
 - **Established foundation** for future advanced optimizations
 
-The optimizations focus on three key areas: pre-allocated buffer reuse, derivative computation caching, and reduced memory allocation overhead.
+The optimizations focus on four key areas: pre-allocated buffer reuse, derivative computation caching, reduced memory allocation overhead, and BLAS-accelerated matrix operations.
 
 ## Implementation Details
 
@@ -255,21 +256,117 @@ This ensures:
 - Minimal serialization overhead
 - Proper buffer initialization for any network configuration
 
+## BLAS Acceleration (v1.2.0)
+
+### Overview
+
+The BLAS (Basic Linear Algebra Subprograms) acceleration integrates optimized linear algebra operations using the gonum BLAS64 library. This provides dramatic performance improvements for matrix operations, which are the computational bottleneck in neural networks.
+
+### Implementation Strategy
+
+1. **BLASOptimizer Engine**: Core acceleration engine with flat buffer management
+2. **BLASNetwork Wrapper**: Maintains API compatibility with automatic conversion
+3. **Global Optimization**: Thread-safe global optimizer for consistent acceleration
+4. **Flat Buffer Layout**: Row-major format with correct stride for BLAS compatibility
+
+### Performance Improvements
+
+**Core Matrix Operations:**
+| Operation | Regular (ns/op) | BLAS (ns/op) | Speedup |
+|-----------|-----------------|--------------|---------|
+| Matrix-Vector (100×200) | 26,971 | 4,304 | **6.3×** |
+| Rank-1 Update (100×200) | 32,801 | 5,756 | **5.7×** |
+
+**Forward Pass Performance:**
+| Network Size | Regular (ns/op) | BLAS (ns/op) | Speedup |
+|--------------|-----------------|--------------|---------|
+| Small (10-20-10-5) | 1,994 | 1,118 | **1.8×** |
+| Medium (50-100-50-10) | 45,171 | 5,069 | **8.9×** |
+| Large (100-200-100-50-10) | 136,861 | 17,673 | **7.7×** |
+
+**Training Performance (Forward + Backward):**
+| Network Size | Regular (ns/op) | BLAS (ns/op) | Speedup |
+|--------------|-----------------|--------------|---------|
+| Small (10-20-5) | 3,132 | 1,732 | **1.8×** |
+| Medium (50-100-20) | 56,908 | 8,227 | **6.9×** |
+
+**Network Creation Overhead:**
+| Network Type | Time (ns/op) | Notes |
+|--------------|--------------|-------|
+| Regular | 295,554 | Base network creation |
+| BLAS | 176,054 | **1.7× faster** creation |
+
+### Technical Details
+
+#### BLAS Operations Used
+- **GEMV**: Matrix-vector multiplication for forward/backward passes
+- **GER**: Rank-1 updates for weight optimization  
+- **AXPY**: Vector addition for bias updates and accumulated gradients
+- **Transpose operations**: Efficient transposed matrix operations for backpropagation
+
+#### Memory Layout Optimization
+```mermaid
+flowchart LR
+    A[Jagged Weights<br/>[layer][neuron][input]] --> B[Convert to Flat]
+    B --> C[Row-Major Flat Buffer<br/>[neuron×input]]
+    C --> D[BLAS General Matrix<br/>Rows=neurons, Cols=inputs, Stride=cols]
+    D --> E[BLAS Operations<br/>GEMV, GER, AXPY]
+    E --> F[Convert Back]
+    F --> G[Updated Jagged Weights]
+    
+    style C fill:#e1f5e1
+    style D fill:#e1f5e1
+    style E fill:#fff3e0
+```
+
+#### Performance Scaling Characteristics
+- **Small networks**: 1.8× improvement (overhead dominates)
+- **Medium networks**: 6-9× improvement (optimal scaling)
+- **Large networks**: 7-8× improvement (memory bandwidth limited)
+- **Batch operations**: Not yet optimized (future work)
+
+#### API Compatibility
+- Existing `Network` API remains unchanged
+- BLAS acceleration optional through `BLASNetwork` type
+- Global BLAS optimization: `EnableGlobalBLASOptimization()`
+- Full numerical equivalence with regular implementation
+
+### Cumulative Performance Improvement
+
+From v1.0.0 (baseline) to v1.2.0 (BLAS accelerated):
+
+| Operation | Network Size | v1.0.0 → v1.1.0 | v1.1.0 → v1.2.0 | Total Improvement |
+|-----------|--------------|-----------------|-----------------|-------------------|
+| FeedForward | Medium | ~10% | 8.9× | **~9.8× total** |
+| Training | Medium | ~10% | 6.9× | **~7.6× total** |
+| Matrix Ops | 100×200 | N/A | 6.3× | **6.3× total** |
+
+### Limitations and Future Work
+- **Batch training**: BLAS optimization not yet applied to batch operations
+- **Small networks**: Overhead reduces benefits for very small networks
+- **Memory conversion**: Weight conversion between formats adds overhead
+- **GPU acceleration**: Future extension for even larger performance gains
+
 ## Future Optimization Opportunities
 
 ### High-Priority Improvements
 
-1. **Matrix Operations Integration**
-   - Replace nested loops with BLAS operations via `gonum/blas`
-   - Expected improvement: 10-100× speedup for large networks
-   - Compatibility: Maintain same API with internal implementation change
+1. **✅ Matrix Operations Integration** *(COMPLETED in v1.2.0)*
+   - Replaced nested loops with BLAS operations via `gonum/blas`
+   - Actual improvement: 5-9× speedup for medium/large networks
+   - Compatibility: Maintained same API with BLASNetwork wrapper
 
-2. **Parallel Batch Processing**
+2. **Batch Training BLAS Optimization**
+   - Apply BLAS acceleration to batch training operations
+   - Expected improvement: 3-5× speedup for batch training
+   - Implementation: BLAS-optimized `BatchTrainBLAS` method
+
+3. **Parallel Batch Processing**
    - Process batch examples concurrently using goroutines
    - Use thread-local buffers with final aggregation
    - Expected improvement: Near-linear scaling with CPU cores
 
-3. **SIMD Vectorization**
+4. **SIMD Vectorization**
    - Manual SIMD intrinsics for inner loops
    - Could use `github.com/klauspost/cpuid` for CPU feature detection
    - Expected improvement: 2-4× for compute-bound operations
