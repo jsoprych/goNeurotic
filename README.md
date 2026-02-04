@@ -41,9 +41,17 @@ This project demonstrates how to build robust machine learning tools in Go, with
 - **Batch Processing**: Optimized weight update accumulation for mini-batch training
 - **Cache Locality**: Improved memory access patterns for better CPU cache utilization
 
+### 🤖 **Advanced ML & Time Series**
+- **Optimizer System**: SGD, Momentum, RMSprop, Adam with adaptive learning rates and momentum
+- **State Serialization**: Save/restore optimizer states for training continuity
+- **Time Series Forecasting**: Comprehensive `pkg/timeseries` with sliding windows, normalization, metrics
+- **Evaluation Metrics**: RMSE, MAE, MAPE, SMAPE, R² for rigorous model assessment
+- **BLAS Acceleration**: 7.8× faster batch training with optimized matrix operations
+- **Feature Engineering**: Lag features, date components, outlier detection, missing value imputation
+
 ### 📊 **CLI Tool & Demos**
 - **Interactive CLI**: Command-line interface with multiple demos
-- **Built-in Demos**: XOR, AND gates, sine function approximation, digit recognition, Iris classification
+- **Built-in Demos**: XOR, AND gates, sine function approximation, digit recognition, Iris classification, **time series forecasting**
 - **Visualization Support**: Export data for plotting and analysis
 - **Benchmarking**: Performance testing and profiling
 

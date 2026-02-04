@@ -13,7 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"goneurotic/pkg/neural"
+	    "goneurotic/pkg/neural"
+	    "goneurotic/pkg/timeseries"
 )
 
 // Command-line flags
@@ -36,12 +37,13 @@ var (
 
 // Demo examples
 var demos = map[string]func(){
-	"and":     demoAND,
-	"xor":     demoXOR,
-	"sin":     demoSine,
-	"mnist":   demoMNIST,
-	"iris":    demoIris,
-	"complex": demoComplex,
+    "and":        demoAND,
+    "xor":        demoXOR,
+    "sin":        demoSine,
+    "mnist":      demoMNIST,
+    "iris":       demoIris,
+    "complex":    demoComplex,
+    "timeseries": demoTimeseries,
 }
 
 func main() {
@@ -55,11 +57,12 @@ func main() {
 		}
 		fmt.Fprintf(os.Stderr, "\nExamples:\n")
 		fmt.Fprintf(os.Stderr, "  %s -demo xor\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "  %s -demo timeseries\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s -train data.csv -test test.csv -epochs 5000\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  %s -benchmark\n", os.Args[0])
 	}
 
-	demo := flag.String("demo", "", "Run a demo (and, xor, sin, mnist, iris, complex)")
+	demo := flag.String("demo", "", "Run a demo (and, xor, sin, mnist, iris, complex, timeseries)")
 
 	flag.Parse()
 
@@ -618,6 +621,237 @@ func demoComplex() {
 	if *visualize {
 		generateComplexVisualization(network)
 	}
+}
+
+func demoTimeseries() {
+	fmt.Println("\n=== Time Series Forecasting Demo ===")
+	fmt.Println("Training a neural network to forecast future time series values")
+	fmt.Println("Using sliding windows, normalization, and advanced evaluation metrics")
+
+	// Generate synthetic time series data (seasonal with trend and noise)
+	length := 500
+	seasonLength := 50
+	amplitude := 10.0
+	trendSlope := 0.02
+	noiseLevel := 1.5
+
+	fmt.Printf("\nGenerating synthetic time series (length=%d)...\n", length)
+	series := timeseries.GenerateSeasonal(length, seasonLength, amplitude, trendSlope, noiseLevel)
+
+	// Normalize the series using z-score normalization
+	fmt.Println("Normalizing time series (z-score)...")
+	normalizedSeries, stats := timeseries.NormalizeZScore(series)
+
+	// Create sliding windows for supervised learning
+	// Input: past 20 observations, Output: next 5 observations
+	config := timeseries.SlidingWindowConfig{
+		InputSize:  20,
+		OutputSize: 5,
+		Step:       1,
+	}
+
+	fmt.Printf("Creating sliding windows (input=%d, output=%d)...\n", config.InputSize, config.OutputSize)
+	inputs, outputs := timeseries.CreateSlidingWindows(normalizedSeries, config)
+	fmt.Printf("Created %d training examples\n", len(inputs))
+
+	// Split into train and test sets (80/20 split)
+	testRatio := 0.2
+	trainInputs, trainOutputs, testInputs, testOutputs := timeseries.TrainTestSplitWindows(inputs, outputs, testRatio)
+	fmt.Printf("Train set: %d examples, Test set: %d examples\n", len(trainInputs), len(testInputs))
+
+	// Create neural network for time series forecasting
+	// Input size = window size (20), Output size = forecast horizon (5)
+	networkConfig := neural.NetworkConfig{
+		LayerSizes:       []int{20, 32, 16, 5}, // Forecasting 5 steps ahead
+		LearningRate:     0.01,
+		Activation:       neural.Tanh,          // Tanh works well for normalized data
+		OutputActivation: neural.Linear,        // Linear for regression
+		LossFunction:     neural.MeanSquaredError,
+	}
+
+	network := neural.NewNetwork(networkConfig)
+	fmt.Printf("\nNetwork created: %v\n", networkConfig.LayerSizes)
+
+	// Train the network
+	fmt.Println("\nTraining network...")
+	start := time.Now()
+	epochs := 400
+
+	for epoch := 0; epoch < epochs; epoch++ {
+		// Use mini-batch training for efficiency
+		loss := network.BatchTrain(trainInputs, trainOutputs)
+
+		if epoch%400 == 0 {
+			fmt.Printf("Epoch %d/%d: Loss = %.6f\n", epoch, epochs, loss)
+		}
+	}
+
+	trainingTime := time.Since(start)
+	fmt.Printf("Training completed in %v\n", trainingTime)
+
+	// Evaluate on test set
+	fmt.Println("\n=== Test Set Evaluation ===")
+
+	allPredictions := make([][]float64, len(testInputs))
+	allActuals := make([][]float64, len(testInputs))
+
+	for i := range testInputs {
+		prediction := network.Predict(testInputs[i])
+		allPredictions[i] = prediction
+		allActuals[i] = testOutputs[i]
+	}
+
+	// Denormalize predictions and actuals for evaluation in original scale
+	denormPredictions := make([][]float64, len(allPredictions))
+	denormActuals := make([][]float64, len(allActuals))
+
+	for i := range allPredictions {
+		denormPredictions[i] = timeseries.DenormalizeZScore(allPredictions[i], stats)
+		denormActuals[i] = timeseries.DenormalizeZScore(allActuals[i], stats)
+	}
+
+	// Calculate metrics for each forecast horizon
+	fmt.Println("\nForecast Horizon Performance:")
+	horizonMetrics := make([]timeseries.ForecastMetrics, config.OutputSize)
+
+	for h := 0; h < config.OutputSize; h++ {
+		// Extract predictions and actuals for this horizon
+		horizonPreds := make([]float64, len(denormPredictions))
+		horizonActuals := make([]float64, len(denormActuals))
+
+		for i := range denormPredictions {
+			horizonPreds[i] = denormPredictions[i][h]
+			horizonActuals[i] = denormActuals[i][h]
+		}
+
+		metrics := timeseries.CalculateMetrics(horizonActuals, horizonPreds)
+		horizonMetrics[h] = metrics
+
+		fmt.Printf("  Horizon %d (+%d steps): RMSE=%.4f, MAE=%.4f, MAPE=%.2f%%\n",
+			h+1, h+1, metrics.RMSE, metrics.MAE, metrics.MAPE)
+	}
+
+	// Calculate overall metrics (average across all horizons)
+	fmt.Println("\nOverall Performance (averaged across horizons):")
+	avgRMSE, avgMAE, avgMAPE, avgSMAPE, avgR2 := 0.0, 0.0, 0.0, 0.0, 0.0
+	for _, m := range horizonMetrics {
+		avgRMSE += m.RMSE
+		avgMAE += m.MAE
+		avgMAPE += m.MAPE
+		avgSMAPE += m.SMAPE
+		avgR2 += m.R2
+	}
+	nHorizons := float64(len(horizonMetrics))
+	avgRMSE /= nHorizons
+	avgMAE /= nHorizons
+	avgMAPE /= nHorizons
+	avgSMAPE /= nHorizons
+	avgR2 /= nHorizons
+
+	fmt.Printf("  Average RMSE: %.4f\n", avgRMSE)
+	fmt.Printf("  Average MAE:  %.4f\n", avgMAE)
+	fmt.Printf("  Average MAPE: %.2f%%\n", avgMAPE)
+	fmt.Printf("  Average SMAPE: %.2f%%\n", avgSMAPE)
+	fmt.Printf("  Average R²:   %.4f\n", avgR2)
+
+	// Show example forecasts
+	fmt.Println("\n=== Example Forecasts ===")
+	numExamples := 3
+	for ex := 0; ex < numExamples && ex < len(testInputs); ex++ {
+		fmt.Printf("\nExample %d:\n", ex+1)
+		fmt.Printf("  Input window (last %d obs):  [", config.InputSize)
+		for i, val := range testInputs[ex] {
+			denormVal := timeseries.DenormalizeZScore([]float64{val}, stats)[0]
+			if i < 3 || i >= config.InputSize-3 {
+				fmt.Printf("%.2f", denormVal)
+				if i < config.InputSize-1 {
+					if i == 2 && config.InputSize > 6 {
+						fmt.Printf(" ... ")
+						i = config.InputSize - 4 // Skip to last few
+					} else if !(i == 2 && config.InputSize > 6) {
+						fmt.Printf(", ")
+					}
+				}
+			}
+		}
+		fmt.Printf("]\n")
+
+		fmt.Printf("  Actual next %d values:      [", config.OutputSize)
+		for i, val := range denormActuals[ex] {
+			fmt.Printf("%.2f", val)
+			if i < len(denormActuals[ex])-1 {
+				fmt.Printf(", ")
+			}
+		}
+		fmt.Printf("]\n")
+
+		fmt.Printf("  Predicted next %d values:   [", config.OutputSize)
+		for i, val := range denormPredictions[ex] {
+			fmt.Printf("%.2f", val)
+			if i < len(denormPredictions[ex])-1 {
+				fmt.Printf(", ")
+			}
+		}
+		fmt.Printf("]\n")
+	}
+
+	// Demonstrate multi-step forecasting (recursive prediction)
+	fmt.Println("\n=== Multi-Step Forecasting Demonstration ===")
+
+	// Take the last window from training data as starting point
+	lastTrainWindow := trainInputs[len(trainInputs)-1]
+	currentState := make([]float64, len(lastTrainWindow))
+	copy(currentState, lastTrainWindow)
+
+	fmt.Printf("Starting from last training window, forecasting %d steps ahead recursively:\n", config.OutputSize*3)
+
+	recursiveForecast := make([]float64, 0)
+	for step := 0; step < config.OutputSize*3; step++ {
+		// Predict next value
+		prediction := network.Predict(currentState)
+		nextValue := prediction[0] // Only take first step prediction
+
+		// Denormalize for display
+		denormNextValue := timeseries.DenormalizeZScore([]float64{nextValue}, stats)[0]
+		recursiveForecast = append(recursiveForecast, denormNextValue)
+
+		// Update state: shift window and add prediction
+		for i := 0; i < config.InputSize-1; i++ {
+			currentState[i] = currentState[i+1]
+		}
+		currentState[config.InputSize-1] = nextValue
+
+		if step < 5 || step >= config.OutputSize*3-5 {
+			fmt.Printf("  Step %d: %.2f\n", step+1, denormNextValue)
+			if step == 4 && config.OutputSize*3 > 10 {
+				fmt.Printf("  ... (intermediate steps omitted)\n")
+			}
+		}
+	}
+
+	// Save model for potential reuse
+	modelFile := "timeseries_model.json"
+	if err := network.Save(modelFile); err != nil {
+		fmt.Printf("Error saving model: %v\n", err)
+	} else {
+		fmt.Printf("\nModel saved to '%s'\n", modelFile)
+		fmt.Println("You can load this model for future time series forecasting.")
+	}
+
+	// Explain practical applications
+	fmt.Println("\n=== Practical Applications ===")
+	fmt.Println("This time series forecasting approach can be used for:")
+	fmt.Println("1. Stock price prediction (with proper feature engineering)")
+	fmt.Println("2. Energy demand forecasting")
+	fmt.Println("3. Weather prediction")
+	fmt.Println("4. Sales forecasting")
+	fmt.Println("5. Anomaly detection in system metrics")
+	fmt.Println("\nFor production use, consider:")
+	fmt.Println("- Using real historical data with proper preprocessing")
+	fmt.Println("- Adding exogenous features (date components, holidays, etc.)")
+	fmt.Println("- Implementing walk-forward validation for robust evaluation")
+	fmt.Println("- Tuning hyperparameters (window size, network architecture)")
+	fmt.Println("- Using ensemble methods for uncertainty quantification")
 }
 
 func trainAndTest() {

@@ -13,6 +13,8 @@ type BLASOptimizer struct {
 	// Flat buffers for BLAS operations
 	weightFlatBuffers [][]float64 // layer → flat matrix (row-major: rows = neurons, cols = inputs)
 	biasFlatBuffers   [][]float64 // layer → flat vector
+	weightUpdateFlatBuffers [][]float64 // layer → flat matrix for batch weight updates
+	biasUpdateFlatBuffers   [][]float64 // layer → flat vector for batch bias updates
 
 	// Temporary buffers to avoid allocations
 	gemvYBuffers      [][]float64 // output buffers for GEMV
@@ -36,6 +38,8 @@ func NewBLASOptimizer(layerSizes []int) *BLASOptimizer {
 	// Initialize flat buffers
 	optimizer.weightFlatBuffers = make([][]float64, numWeightLayers)
 	optimizer.biasFlatBuffers = make([][]float64, numWeightLayers)
+	optimizer.weightUpdateFlatBuffers = make([][]float64, numWeightLayers)
+	optimizer.biasUpdateFlatBuffers = make([][]float64, numWeightLayers)
 	optimizer.gemvYBuffers = make([][]float64, numWeightLayers)
 	optimizer.gemvXTmpBuffers = make([][]float64, numWeightLayers)
 	optimizer.gerTmpBuffers = make([][]float64, numWeightLayers)
@@ -49,6 +53,12 @@ func NewBLASOptimizer(layerSizes []int) *BLASOptimizer {
 
 		// Bias vector: fanOut
 		optimizer.biasFlatBuffers[i] = make([]float64, fanOut)
+
+		// Weight update matrix: fanOut × fanIn (row-major)
+		optimizer.weightUpdateFlatBuffers[i] = make([]float64, fanOut*fanIn)
+
+		// Bias update vector: fanOut
+		optimizer.biasUpdateFlatBuffers[i] = make([]float64, fanOut)
 
 		// Output buffer for GEMV: fanOut
 		optimizer.gemvYBuffers[i] = make([]float64, fanOut)
@@ -305,6 +315,29 @@ func (b *BLASOptimizer) BatchUpdateWeightsBLAS(layer int, learningRate float64,
 	blas64.Ger(1.0, deltaVec, activationPrevVec, weightUpdatesMat)
 }
 
+// AccumulateBiasUpdatesBLAS accumulates bias updates across a batch
+// biasUpdates accumulates: Σ delta for each example
+func (b *BLASOptimizer) AccumulateBiasUpdatesBLAS(layer int, delta []float64, biasUpdates []float64) {
+	fanOut := len(delta)
+
+	if len(biasUpdates) != fanOut {
+		panic(fmt.Sprintf("biasUpdates size mismatch: expected %d, got %d", fanOut, len(biasUpdates)))
+	}
+
+	// Accumulate: biasUpdates += delta
+	deltaVec := blas64.Vector{
+		N:    fanOut,
+		Data: delta,
+		Inc:  1,
+	}
+	biasUpdatesVec := blas64.Vector{
+		N:    fanOut,
+		Data: biasUpdates,
+		Inc:  1,
+	}
+	blas64.Axpy(1.0, deltaVec, biasUpdatesVec)
+}
+
 // ApplyBatchWeightUpdatesBLAS applies accumulated weight updates
 // W = W - (learningRate/batchSize) * weightUpdates
 func (b *BLASOptimizer) ApplyBatchWeightUpdatesBLAS(layer int, learningRate, batchSize float64,
@@ -370,10 +403,32 @@ func (b *BLASOptimizer) ApplyBatchBiasUpdatesBLAS(layer int, learningRate, batch
 	}
 }
 
+// ResetBatchUpdates resets the internal batch update buffers to zero.
+func (b *BLASOptimizer) ResetBatchUpdates() {
+	for layer := range b.weightUpdateFlatBuffers {
+		for i := range b.weightUpdateFlatBuffers[layer] {
+			b.weightUpdateFlatBuffers[layer][i] = 0.0
+		}
+		for i := range b.biasUpdateFlatBuffers[layer] {
+			b.biasUpdateFlatBuffers[layer][i] = 0.0
+		}
+	}
+}
+
+// ResetBatchUpdatesLayer resets the internal batch update buffers for a specific layer to zero.
+func (b *BLASOptimizer) ResetBatchUpdatesLayer(layer int) {
+	for i := range b.weightUpdateFlatBuffers[layer] {
+		b.weightUpdateFlatBuffers[layer][i] = 0.0
+	}
+	for i := range b.biasUpdateFlatBuffers[layer] {
+		b.biasUpdateFlatBuffers[layer][i] = 0.0
+	}
+}
+
 // BLASNetwork wraps a Network with BLAS optimization
 type BLASNetwork struct {
 	*Network
-	optimizer *BLASOptimizer
+	blasOps *BLASOptimizer
 	// Cache for converted data
 	weightsConverted bool
 }
@@ -383,7 +438,7 @@ func NewBLASNetwork(config NetworkConfig) *BLASNetwork {
 	network := NewNetwork(config)
 	blasNetwork := &BLASNetwork{
 		Network:   network,
-		optimizer: NewBLASOptimizer(config.LayerSizes),
+		blasOps: NewBLASOptimizer(config.LayerSizes),
 	}
 
 	// Convert initial weights and biases to flat format
@@ -395,8 +450,8 @@ func NewBLASNetwork(config NetworkConfig) *BLASNetwork {
 // ConvertToFlat converts all weights and biases to flat BLAS format
 func (bn *BLASNetwork) ConvertToFlat() {
 	for i := range bn.Weights {
-		bn.optimizer.ConvertWeightsToFlat(i, bn.Weights[i])
-		bn.optimizer.ConvertBiasesToFlat(i, bn.Biases[i])
+		bn.blasOps.ConvertWeightsToFlat(i, bn.Weights[i])
+		bn.blasOps.ConvertBiasesToFlat(i, bn.Biases[i])
 	}
 	bn.weightsConverted = true
 }
@@ -404,8 +459,8 @@ func (bn *BLASNetwork) ConvertToFlat() {
 // ConvertFromFlat converts all weights and biases from flat BLAS format back to jagged
 func (bn *BLASNetwork) ConvertFromFlat() {
 	for i := range bn.Weights {
-		bn.optimizer.ConvertWeightsFromFlat(i, bn.Weights[i])
-		bn.optimizer.ConvertBiasesFromFlat(i, bn.Biases[i])
+		bn.blasOps.ConvertWeightsFromFlat(i, bn.Weights[i])
+		bn.blasOps.ConvertBiasesFromFlat(i, bn.Biases[i])
 	}
 }
 
@@ -438,7 +493,7 @@ func (bn *BLASNetwork) FeedForwardBLAS(input []float64) ([]float64, [][]float64)
 		}
 
 		// Perform BLAS-optimized forward pass
-		bn.optimizer.ForwardPassBLAS(i, activations[i], layerActivations, activationFunc)
+		bn.blasOps.ForwardPassBLAS(i, activations[i], layerActivations, activationFunc)
 		activations[i+1] = layerActivations
 	}
 
@@ -482,7 +537,7 @@ func (bn *BLASNetwork) TrainBLAS(input, target []float64) float64 {
 		deltas[layer] = make([]float64, bn.LayerSizes[layer+1])
 
 		// Use BLAS for backward pass
-		bn.optimizer.BackwardPassBLAS(layer, layer+1,
+		bn.blasOps.BackwardPassBLAS(layer, layer+1,
 			deltas[layer+1], activations[layer+1],
 			func(x float64) float64 {
 				if layer == len(bn.LayerSizes)-2 {
@@ -495,11 +550,108 @@ func (bn *BLASNetwork) TrainBLAS(input, target []float64) float64 {
 
 	// Update weights and biases using BLAS
 	for layer := 0; layer < len(bn.LayerSizes)-1; layer++ {
-		bn.optimizer.UpdateWeightsBLAS(layer, bn.LearningRate, deltas[layer], activations[layer])
-		bn.optimizer.UpdateBiasesBLAS(layer, bn.LearningRate, deltas[layer])
+		bn.blasOps.UpdateWeightsBLAS(layer, bn.LearningRate, deltas[layer], activations[layer])
+		bn.blasOps.UpdateBiasesBLAS(layer, bn.LearningRate, deltas[layer])
 	}
 
 	return loss
+}
+
+// BatchTrainBLAS trains the network on a batch of examples using BLAS optimization
+func (bn *BLASNetwork) BatchTrainBLAS(inputs, targets [][]float64) float64 {
+	if len(inputs) != len(targets) {
+		panic("Number of inputs must match number of targets")
+	}
+
+	if len(inputs) == 0 {
+		return 0.0
+	}
+
+	if !bn.weightsConverted {
+		bn.ConvertToFlat()
+	}
+
+	// Reset batch update buffers
+	bn.blasOps.ResetBatchUpdates()
+
+	totalLoss := 0.0
+
+	// Process each example in the batch
+	for exampleIdx := range inputs {
+		// Forward pass
+		output, activations := bn.FeedForwardBLAS(inputs[exampleIdx])
+
+		// Calculate loss
+		totalLoss += bn.LossFunction.Function(output, targets[exampleIdx])
+
+		// Backward pass
+		outputErrors := bn.LossFunction.Derivative(output, targets[exampleIdx])
+
+		// Calculate deltas for each layer
+		deltas := make([][]float64, len(bn.LayerSizes)-1)
+		lastLayer := len(bn.LayerSizes) - 2
+
+		// Output layer delta
+		deltas[lastLayer] = make([]float64, bn.LayerSizes[lastLayer+1])
+		for i := range deltas[lastLayer] {
+			activation := activations[lastLayer+1][i]
+			var derivative float64
+			if lastLayer == len(bn.LayerSizes)-2 {
+				derivative = bn.OutputActivation.Derivative(activation)
+			} else {
+				derivative = bn.Activation.Derivative(activation)
+			}
+			deltas[lastLayer][i] = outputErrors[i] * derivative
+		}
+
+		// Hidden layer deltas
+		for layer := lastLayer - 1; layer >= 0; layer-- {
+			deltas[layer] = make([]float64, bn.LayerSizes[layer+1])
+
+			// Use BLAS for backward pass
+			bn.blasOps.BackwardPassBLAS(layer, layer+1,
+				deltas[layer+1], activations[layer+1],
+				func(x float64) float64 {
+					if layer == len(bn.LayerSizes)-2 {
+						return bn.OutputActivation.Derivative(x)
+					}
+					return bn.Activation.Derivative(x)
+				},
+				deltas[layer])
+		}
+
+		// Accumulate weight and bias updates using BLAS
+		for layer := 0; layer < len(bn.LayerSizes)-1; layer++ {
+			// Get flat update buffers for this layer
+			weightUpdatesFlat := bn.blasOps.weightUpdateFlatBuffers[layer]
+			biasUpdatesFlat := bn.blasOps.biasUpdateFlatBuffers[layer]
+
+			// Accumulate weight updates: weightUpdates += delta * activation_prevᵀ
+			bn.blasOps.BatchUpdateWeightsBLAS(layer, bn.LearningRate,
+				deltas[layer], activations[layer], weightUpdatesFlat)
+
+			// Accumulate bias updates: biasUpdates += delta
+			bn.blasOps.AccumulateBiasUpdatesBLAS(layer, deltas[layer], biasUpdatesFlat)
+		}
+	}
+
+	// Apply batch updates using BLAS
+	batchSize := float64(len(inputs))
+	for layer := 0; layer < len(bn.LayerSizes)-1; layer++ {
+		weightUpdatesFlat := bn.blasOps.weightUpdateFlatBuffers[layer]
+		biasUpdatesFlat := bn.blasOps.biasUpdateFlatBuffers[layer]
+
+		// Apply weight updates: W = W - (learningRate/batchSize) * weightUpdates
+		bn.blasOps.ApplyBatchWeightUpdatesBLAS(layer, bn.LearningRate, batchSize, weightUpdatesFlat)
+
+		// Apply bias updates: b = b - (learningRate/batchSize) * biasUpdates
+		bn.blasOps.ApplyBatchBiasUpdatesBLAS(layer, bn.LearningRate, batchSize, biasUpdatesFlat)
+	}
+
+	// Convert flat buffers back to jagged format to keep Network consistent
+	bn.ConvertFromFlat()
+
+	return totalLoss / float64(len(inputs))
 }
 
 // Global BLAS optimizer instance with thread safety

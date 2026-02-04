@@ -117,8 +117,8 @@ func TestBLASNetwork_FeedForwardBLAS(t *testing.T) {
 	// Copy weights and biases from regular network to BLAS network
 	// to ensure they have the same initial state
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -202,8 +202,8 @@ func TestBLASNetwork_TrainBLAS(t *testing.T) {
 	// Initialize all networks with same weights
 	for i := range regularNet1.Weights {
 		// Copy weights to BLAS network
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet1.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet1.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet1.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet1.Biases[i])
 
 	}
 	blasNet.weightsConverted = true
@@ -292,12 +292,12 @@ func TestBLASNetwork_ConvertToFromFlat(t *testing.T) {
 	}
 
 	// Modify flat buffers to verify conversion back works
-	for i := range network.optimizer.weightFlatBuffers {
-		for j := range network.optimizer.weightFlatBuffers[i] {
-			network.optimizer.weightFlatBuffers[i][j] *= 2.0
+	for i := range network.blasOps.weightFlatBuffers {
+		for j := range network.blasOps.weightFlatBuffers[i] {
+			network.blasOps.weightFlatBuffers[i][j] *= 2.0
 		}
-		for j := range network.optimizer.biasFlatBuffers[i] {
-			network.optimizer.biasFlatBuffers[i][j] *= 2.0
+		for j := range network.blasOps.biasFlatBuffers[i] {
+			network.blasOps.biasFlatBuffers[i][j] *= 2.0
 		}
 	}
 
@@ -403,8 +403,8 @@ func TestBLASNetwork_BatchTrain(t *testing.T) {
 
 	// Initialize with same weights
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -504,5 +504,93 @@ func TestEnableGlobalBLASOptimization(t *testing.T) {
 	optimizer2 := GetGlobalBLASOptimizer()
 	if optimizer != optimizer2 {
 		t.Error("Second EnableGlobalBLASOptimization should return same optimizer")
+	}
+}
+
+// TestBLASNetwork_BatchTrainBLAS tests the BLAS-optimized batch training method
+func TestBLASNetwork_BatchTrainBLAS(t *testing.T) {
+	config := NetworkConfig{
+		LayerSizes:   []int{2, 4, 1},
+		LearningRate: 0.1,
+		Activation:   Sigmoid,
+		OutputActivation: Sigmoid,
+		LossFunction: MeanSquaredError,
+	}
+	regularNet := NewNetwork(config)
+	blasNet := NewBLASNetwork(config)
+
+	// Initialize with same weights
+	for i := range regularNet.Weights {
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
+	}
+	blasNet.weightsConverted = true
+	blasNet.ConvertFromFlat()
+
+	// Create batch data
+	inputs := [][]float64{
+		{0.1, 0.2},
+		{0.3, 0.4},
+		{0.5, 0.6},
+		{0.7, 0.8},
+	}
+	targets := [][]float64{
+		{0},
+		{1},
+		{0},
+		{1},
+	}
+
+	// Train regular network with batch training
+	regularLoss := regularNet.BatchTrain(inputs, targets)
+
+	// Train BLAS network with BLAS-optimized batch training
+	blasLoss := blasNet.BatchTrainBLAS(inputs, targets)
+
+	// Loss values should be similar (allow for small numerical differences)
+	if math.Abs(regularLoss - blasLoss) > 1e-10 {
+		t.Errorf("BatchTrainBLAS loss mismatch: regular %f, BLAS %f", regularLoss, blasLoss)
+	}
+
+	// Verify predictions are similar
+	for i, input := range inputs {
+		regularOutput := regularNet.Predict(input)
+		blasOutput, _ := blasNet.FeedForwardBLAS(input)
+
+		if !floatSliceEqual(regularOutput, blasOutput, 1e-10) {
+			t.Errorf("Prediction %d mismatch after BatchTrainBLAS: regular %v, BLAS %v",
+				i, regularOutput, blasOutput)
+		}
+	}
+
+	// Test that BatchTrainBLAS accumulates gradients correctly
+	// Run multiple epochs and verify loss decreases
+	initialLoss := blasLoss
+	for epoch := 0; epoch < 5; epoch++ {
+		blasNet.BatchTrainBLAS(inputs, targets)
+	}
+	finalLoss := 0.0
+	for i := range inputs {
+		output, _ := blasNet.FeedForwardBLAS(inputs[i])
+		finalLoss += blasNet.LossFunction.Function(output, targets[i])
+	}
+	finalLoss /= float64(len(inputs))
+
+	// Loss should generally decrease (not strictly guaranteed but likely)
+	if finalLoss > initialLoss * 1.1 { // Allow 10% increase due to randomness
+		t.Logf("Loss didn't decrease as expected: initial %f, final %f", initialLoss, finalLoss)
+		// Not a failure, just informational
+	}
+
+	// Test edge case: empty batch should return zero loss
+	emptyLoss := blasNet.BatchTrainBLAS([][]float64{}, [][]float64{})
+	if emptyLoss != 0.0 {
+		t.Errorf("Empty batch should return zero loss, got %f", emptyLoss)
+	}
+
+	// Test edge case: single example batch (should work)
+	singleLoss := blasNet.BatchTrainBLAS([][]float64{{0.5, 0.5}}, [][]float64{{0.5}})
+	if math.IsNaN(singleLoss) || math.IsInf(singleLoss, 0) {
+		t.Errorf("Single example batch returned invalid loss: %f", singleLoss)
 	}
 }

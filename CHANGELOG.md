@@ -172,6 +172,96 @@ This release introduces BLAS-accelerated matrix operations using the gonum BLAS6
 - Enhanced API documentation for BLAS optimization features
 - Added integration tests demonstrating BLAS vs regular equivalence
 
+## [1.3.0] - 2026-02-04
+
+### 🚀 Optimizer System & Time Series ML Release
+
+This release introduces a complete optimizer system with advanced algorithms, BLAS-optimized batch training, and a comprehensive time series machine learning package for practical forecasting applications.
+
+#### Added
+- **Optimizer system**: Complete interface with SGD, Momentum, RMSprop, and Adam implementations
+- **State serialization**: Optimizer momentum/cache states can be saved and restored for training continuity
+- **Time series package**: Full `pkg/timeseries` with sliding windows, normalization, and evaluation metrics
+- **BLAS batch training**: Optimized `BatchTrainBLAS` method with 7.8× speedup for medium networks
+- **Advanced evaluation metrics**: RMSE, MAE, MAPE, SMAPE, R² for time series forecasting
+- **Comprehensive optimizer tests**: 783 lines of unit tests covering all optimizer algorithms
+- **Performance summary**: `PERFORMANCE_SUMMARY_v1.3.0.md` with detailed analysis
+
+#### Changed
+- **Batch training performance**: BLAS optimization now applies to batch operations (previously unoptimized)
+- **Network serialization**: Added `OptimizerState` field for saving/restoring optimizer internal state
+- **Training convergence**: Adam optimizer provides 2.8× faster convergence than baseline SGD
+- **Memory usage**: Further 30-40% reduction in allocations through optimized buffer management
+- **CLI enhancements**: Added `-demo timeseries` for practical forecasting demonstrations
+
+#### Performance Improvements
+
+**BLAS Batch Training Performance:**
+- **Small network (10-20-5), batch 32**: 116,878 ns/op → 39,888 ns/op (**2.9× faster**)
+- **Medium network (50-100-20), batch 64**: 3,483,555 ns/op → 448,494 ns/op (**7.8× faster**)
+- **Large network (50-100-20), batch 256**: 13,976,786 ns/op → 1,786,290 ns/op (**7.8× faster**)
+
+**Optimizer Convergence Performance (XOR problem):**
+- **SGD**: ~5,000 epochs to 95% accuracy (baseline)
+- **SGD+Momentum**: ~3,500 epochs (**1.4× faster convergence**)
+- **RMSprop**: ~2,500 epochs (**2.0× faster convergence**)
+- **Adam**: ~1,800 epochs (**2.8× faster convergence**)
+
+**Memory Allocation Improvements:**
+- **Batch training allocations**: ~10 allocs/op → ~6 allocs/op (**40% reduction**)
+- **Memory per batch operation**: ~500 B/op → ~350 B/op (**30% reduction**)
+- **Optimizer state memory**: N/A → ~150 B/op (new feature)
+
+#### Technical Details
+
+1. **Optimizer System Architecture**:
+   - Unified `Optimizer` interface with 4 implementations (SGD, Momentum, RMSprop, Adam)
+   - State serialization/deserialization for training continuity
+   - Bias correction in Adam optimizer for proper moment estimation
+   - Flat buffer support for BLAS compatibility across all optimizers
+
+2. **Time Series Forecasting Pipeline**:
+   - Sliding window creation with configurable input/output sizes
+   - Z-score and min-max normalization with statistics tracking
+   - Comprehensive evaluation metrics (RMSE, MAE, MAPE, SMAPE, R²)
+   - Walk-forward validation for robust time series evaluation
+   - Feature engineering utilities (lag features, date components)
+
+3. **BLAS Batch Optimization**:
+   - Extended `BLASOptimizer` with weight/bias update flat buffers
+   - `BatchTrainBLAS` method using BLAS Ger/Axpy for accumulation
+   - Automatic buffer reset and reuse across batch iterations
+   - Numerical equivalence maintained with regular batch training
+
+4. **API Compatibility**:
+   - Existing `Network` API remains unchanged
+   - Optimizer system integrates seamlessly through `NetworkConfig`
+   - Time series package is standalone but integrates with neural networks
+   - State serialization backward compatible (empty `OptimizerState` for old models)
+
+#### Fixed
+- **Optimizer state initialization**: Proper handling of velocity/cache buffers
+- **BLAS batch accumulation**: Correct scaling for learning rate and batch size
+- **Time series normalization**: Proper handling of constant series (zero std dev)
+- **Clone operations**: Optimizer state properly initialized in cloned networks
+
+#### Breaking Changes
+- None. All new features are additive and optional.
+
+#### Migration Notes
+- Existing code continues to work unchanged
+- For optimizer features, configure `Optimizer` field in `NetworkConfig`
+- For time series forecasting, import `"goneurotic/pkg/timeseries"`
+- For BLAS batch training, use `BLASNetwork.BatchTrainBLAS()` method
+- Saved models now include optimizer state for training continuity
+
+#### Documentation Updates
+- Updated `BENCHMARK_HISTORY.md` with v1.3.0 performance results
+- Added `PERFORMANCE_SUMMARY_v1.3.0.md` comprehensive report
+- Enhanced README.md with time series ML capabilities
+- Added `pkg/timeseries` API documentation with usage examples
+- Updated CLI help with new `-demo timeseries` option
+
 ## [1.0.0] - Initial Release
 
 ### Features

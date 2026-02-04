@@ -435,8 +435,8 @@ func TestBLASTrainingStep(t *testing.T) {
 
 	// Copy weights and biases from regular to BLAS to ensure same starting point
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 

@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"os"
 	"sync"
-	"time"
 )
 
 // ActivationFunc represents an activation function and its derivative
@@ -154,7 +153,7 @@ var (
 		Derivative: func(predicted, target []float64) []float64 {
 			derivatives := make([]float64, len(predicted))
 			for i := range predicted {
-				// Avoid division by zero
+				// Avoid division by zero issues
 				p := math.Max(1e-15, math.Min(1-1e-15, predicted[i]))
 				derivatives[i] = (p - target[i]) / (p * (1 - p)) / float64(len(predicted))
 			}
@@ -163,50 +162,7 @@ var (
 	}
 )
 
-var (
-	activationsByName map[string]ActivationFunc
-	lossesByName      map[string]LossFunc
-	once              sync.Once
-)
-
-func initMaps() {
-	once.Do(func() {
-		activationsByName = map[string]ActivationFunc{
-			"sigmoid": Sigmoid,
-			"relu":    ReLU,
-			"tanh":    Tanh,
-			"linear":  Linear,
-		}
-
-		lossesByName = map[string]LossFunc{
-			"mse":                  MeanSquaredError,
-			"binary_crossentropy":  BinaryCrossEntropy,
-		}
-	})
-}
-
-// GetActivationByName returns an activation function by name
-func GetActivationByName(name string) (ActivationFunc, error) {
-	initMaps()
-	activation, ok := activationsByName[name]
-	if !ok {
-		return ActivationFunc{}, fmt.Errorf("unknown activation function: %s", name)
-	}
-	return activation, nil
-}
-
-// GetLossByName returns a loss function by name
-func GetLossByName(name string) (LossFunc, error) {
-	initMaps()
-	loss, ok := lossesByName[name]
-	if !ok {
-		return LossFunc{}, fmt.Errorf("unknown loss function: %s", name)
-	}
-	return loss, nil
-}
-
-// NetworkConfig holds configuration for creating a neural network
-// NetworkConfig holds configuration parameters for creating a neural network.
+// NetworkConfig holds configuration for creating a neural network.
 // It specifies the architecture, learning hyperparameters, activation functions,
 // loss function, and optional custom weight/bias initializers.
 type NetworkConfig struct {
@@ -215,11 +171,11 @@ type NetworkConfig struct {
 	Activation        ActivationFunc  `json:"activation"`        // Activation function for hidden layers
 	OutputActivation  ActivationFunc  `json:"output_activation"`  // Activation function for output layer
 	LossFunction      LossFunc        `json:"loss_function"`      // Loss function for training
+	Optimizer         *OptimizerConfig `json:"optimizer,omitempty"` // Optional optimizer configuration
 	WeightInitializer func(int, int) float64 `json:"-"` // Function to initialize weights (not serialized)
 	BiasInitializer   func() float64         `json:"-"` // Function to initialize biases (not serialized)
 }
 
-// Network represents a neural network
 // Network represents a neural network with configurable architecture, activation functions,
 // and loss functions. It stores weights and biases for each layer and provides methods
 // for forward propagation, training, and serialization.
@@ -232,6 +188,8 @@ type Network struct {
 	Activation     ActivationFunc     `json:"activation"`
 	OutputActivation ActivationFunc   `json:"output_activation"`
 	LossFunction   LossFunc           `json:"loss_function"`
+	optimizer      Optimizer          `json:"-"` // Optimizer for parameter updates
+	OptimizerState map[string]interface{} `json:"optimizer_state,omitempty"` // Serialized optimizer state
 	// Optimization buffers (not serialized)
 	activationBuffers  [][]float64    `json:"-"` // pre-allocated activation storage
 	derivativeBuffers  [][]float64    `json:"-"` // pre-allocated derivative storage
@@ -258,6 +216,14 @@ func NewNetwork(config NetworkConfig) *Network {
 
 	if config.LossFunction.Name == "" {
 		config.LossFunction = MeanSquaredError
+	}
+
+	// Set default optimizer if not provided
+	if config.Optimizer == nil {
+		config.Optimizer = &OptimizerConfig{
+			Type:         "sgd",
+			LearningRate: config.LearningRate,
+		}
 	}
 
 	if config.WeightInitializer == nil {
@@ -330,7 +296,11 @@ func NewNetwork(config NetworkConfig) *Network {
 		biasUpdateBuffers[i] = make([]float64, len(biases[i]))
 	}
 
-	return &Network{
+	// Create optimizer
+	optimizer := NewOptimizer(*config.Optimizer)
+
+	// Create network
+	network := &Network{
 		Config:               config,
 		Weights:              weights,
 		Biases:               biases,
@@ -339,6 +309,7 @@ func NewNetwork(config NetworkConfig) *Network {
 		Activation:           config.Activation,
 		OutputActivation:     config.OutputActivation,
 		LossFunction:         config.LossFunction,
+		optimizer:            optimizer,
 		activationBuffers:    activationBuffers,
 		derivativeBuffers:    derivativeBuffers,
 		deltasBuffers:        deltasBuffers,
@@ -346,6 +317,11 @@ func NewNetwork(config NetworkConfig) *Network {
 		biasUpdateBuffers:    biasUpdateBuffers,
 		buffersInitialized:   true,
 	}
+
+	// Initialize optimizer state
+	optimizer.InitializeState(config.LayerSizes)
+
+	return network
 }
 
 // FeedForward performs a forward pass through the network
@@ -485,15 +461,20 @@ func (n *Network) Train(input, target []float64) float64 {
 		}
 	}
 
-	// Update weights and biases
+	// Update weights and biases using optimizer
 	for layer := 0; layer < len(n.LayerSizes)-1; layer++ {
-		for i := 0; i < n.LayerSizes[layer+1]; i++ {
-			for j := 0; j < n.LayerSizes[layer]; j++ {
-				n.Weights[layer][i][j] -= n.LearningRate * deltas[layer][i] * activations[layer][j]
-			}
-			n.Biases[layer][i] -= n.LearningRate * deltas[layer][i]
-		}
+		// Create weight gradients
+		weightGradients := CreateWeightGradients(layer, deltas[layer], activations[layer])
+
+		// Update weights using optimizer
+		n.Weights[layer] = n.optimizer.UpdateWeights(layer, n.Weights[layer], weightGradients)
+
+		// Update biases using optimizer
+		n.Biases[layer] = n.optimizer.UpdateBiases(layer, n.Biases[layer], deltas[layer])
 	}
+
+	// Step optimizer
+	n.optimizer.Step()
 
 	return loss
 }
@@ -552,166 +533,209 @@ func (n *Network) BatchTrain(inputs, targets [][]float64) float64 {
 		// Backpropagate through hidden layers
 		for layer := lastLayer - 1; layer >= 0; layer-- {
 			for i := 0; i < n.LayerSizes[layer+1]; i++ {
-				// Calculate error from next layer
 				errorSum := 0.0
 				for j := 0; j < n.LayerSizes[layer+2]; j++ {
 					errorSum += n.Weights[layer+1][j][i] * deltas[layer+1][j]
 				}
-
 				deltas[layer][i] = derivatives[layer][i] * errorSum
 			}
 		}
 
-		// Accumulate updates
+		// Accumulate weight and bias updates
 		for layer := 0; layer < len(n.LayerSizes)-1; layer++ {
-			for i := 0; i < n.LayerSizes[layer+1]; i++ {
-				for j := 0; j < n.LayerSizes[layer]; j++ {
-					weightUpdates[layer][i][j] += deltas[layer][i] * activations[layer][j]
-				}
-				biasUpdates[layer][i] += deltas[layer][i]
-			}
+			// Create weight gradients
+			weightGradients := CreateWeightGradients(layer, deltas[layer], activations[layer])
+
+			// Accumulate weight updates
+			weightUpdates[layer] = n.optimizer.BatchUpdateWeights(layer, weightUpdates[layer], weightGradients)
+
+			// Accumulate bias updates
+			biasUpdates[layer] = n.optimizer.BatchUpdateBiases(layer, biasUpdates[layer], deltas[layer])
 		}
 	}
 
-	// Apply averaged updates
+	// Apply batch updates using optimizer
 	batchSize := float64(len(inputs))
 	for layer := 0; layer < len(n.LayerSizes)-1; layer++ {
-		for i := 0; i < n.LayerSizes[layer+1]; i++ {
-			for j := 0; j < n.LayerSizes[layer]; j++ {
-				n.Weights[layer][i][j] -= n.LearningRate * weightUpdates[layer][i][j] / batchSize
-			}
-			n.Biases[layer][i] -= n.LearningRate * biasUpdates[layer][i] / batchSize
-		}
+		// Apply weight updates
+		n.Weights[layer] = n.optimizer.ApplyBatchUpdatesWeights(layer, n.Weights[layer], weightUpdates[layer], batchSize)
+
+		// Apply bias updates
+		n.Biases[layer] = n.optimizer.ApplyBatchUpdatesBiases(layer, n.Biases[layer], biasUpdates[layer], batchSize)
 	}
 
-	return totalLoss / batchSize
+	// Step optimizer
+	n.optimizer.Step()
+
+	return totalLoss / float64(len(inputs))
 }
 
-// Save saves the network to a file
-func (n *Network) Save(filename string) error {
-	data, err := json.MarshalIndent(n, "", "  ")
-	if err != nil {
-		return err
+// ensureBuffers initializes optimization buffers if not already initialized
+func (n *Network) ensureBuffers() {
+	if n.buffersInitialized {
+		return
 	}
 
-	return os.WriteFile(filename, data, 0644)
-}
-
-// Load loads a network from a file
-func Load(filename string) (*Network, error) {
-	data, err := os.ReadFile(filename)
-	if err != nil {
-		return nil, err
-	}
-
-	var network Network
-	if err := json.Unmarshal(data, &network); err != nil {
-		return nil, err
-	}
-
-	// Initialize buffers that aren't serialized
-	network.initializeBuffers()
-
-	return &network, nil
-}
-
-// GetLayerSizes returns the sizes of each layer in the network
-func (n *Network) GetLayerSizes() []int {
-	return n.LayerSizes
-}
-
-// GetLearningRate returns the learning rate
-func (n *Network) GetLearningRate() float64 {
-	return n.LearningRate
-}
-
-// SetLearningRate sets a new learning rate
-func (n *Network) SetLearningRate(lr float64) {
-	if lr <= 0 {
-		panic("Learning rate must be positive")
-	}
-	n.LearningRate = lr
-}
-
-// Clone creates a deep copy of the network
-func (n *Network) Clone() *Network {
-	// Create a new network with the same config
-	config := n.Config
-	config.LayerSizes = make([]int, len(n.LayerSizes))
-	copy(config.LayerSizes, n.LayerSizes)
-
-	newNetwork := NewNetwork(config)
-
-	// Copy weights and biases
-	for i := range n.Weights {
-		for j := range n.Weights[i] {
-			copy(newNetwork.Weights[i][j], n.Weights[i][j])
-		}
-	}
-
-	for i := range n.Biases {
-		copy(newNetwork.Biases[i], n.Biases[i])
-	}
-
-	return newNetwork
-}
-
-// initializeBuffers initializes the optimization buffers
-func (n *Network) initializeBuffers() {
-	// Initialize buffers if they're nil
-	if n.activationBuffers == nil {
-		n.activationBuffers = make([][]float64, len(n.LayerSizes))
-	}
-	if n.derivativeBuffers == nil {
-		n.derivativeBuffers = make([][]float64, len(n.LayerSizes)-1)
-	}
-	if n.deltasBuffers == nil {
-		n.deltasBuffers = make([][]float64, len(n.LayerSizes)-1)
-	}
-	if n.weightUpdateBuffers == nil {
-		n.weightUpdateBuffers = make([][][]float64, len(n.Weights))
-	}
-	if n.biasUpdateBuffers == nil {
-		n.biasUpdateBuffers = make([][]float64, len(n.Biases))
-	}
+	// Initialize buffers
+	n.activationBuffers = make([][]float64, len(n.LayerSizes))
+	n.derivativeBuffers = make([][]float64, len(n.LayerSizes)-1)
+	n.deltasBuffers = make([][]float64, len(n.LayerSizes)-1)
+	n.weightUpdateBuffers = make([][][]float64, len(n.Weights))
+	n.biasUpdateBuffers = make([][]float64, len(n.Biases))
 
 	// Initialize derivative and delta buffers for each layer
 	for i := 0; i < len(n.LayerSizes)-1; i++ {
-		if n.derivativeBuffers[i] == nil || len(n.derivativeBuffers[i]) != n.LayerSizes[i+1] {
-			n.derivativeBuffers[i] = make([]float64, n.LayerSizes[i+1])
-		}
-		if n.deltasBuffers[i] == nil || len(n.deltasBuffers[i]) != n.LayerSizes[i+1] {
-			n.deltasBuffers[i] = make([]float64, n.LayerSizes[i+1])
-		}
+		n.derivativeBuffers[i] = make([]float64, n.LayerSizes[i+1])
+		n.deltasBuffers[i] = make([]float64, n.LayerSizes[i+1])
 	}
 
 	// Initialize weight update buffers (same shape as weights)
 	for i := range n.Weights {
-		if n.weightUpdateBuffers[i] == nil || len(n.weightUpdateBuffers[i]) != len(n.Weights[i]) {
-			n.weightUpdateBuffers[i] = make([][]float64, len(n.Weights[i]))
+		n.weightUpdateBuffers[i] = make([][]float64, len(n.Weights[i]))
+		for j := range n.weightUpdateBuffers[i] {
+			n.weightUpdateBuffers[i][j] = make([]float64, len(n.Weights[i][j]))
 		}
-		for j := range n.Weights[i] {
-			if n.weightUpdateBuffers[i][j] == nil || len(n.weightUpdateBuffers[i][j]) != len(n.Weights[i][j]) {
-				n.weightUpdateBuffers[i][j] = make([]float64, len(n.Weights[i][j]))
-			}
-		}
-		if n.biasUpdateBuffers[i] == nil || len(n.biasUpdateBuffers[i]) != len(n.Biases[i]) {
-			n.biasUpdateBuffers[i] = make([]float64, len(n.Biases[i]))
-		}
+		n.biasUpdateBuffers[i] = make([]float64, len(n.Biases[i]))
 	}
+
 	n.buffersInitialized = true
 }
 
-// ensureBuffers ensures that all optimization buffers are properly initialized
-func (n *Network) ensureBuffers() {
-	if !n.buffersInitialized || n.activationBuffers == nil || n.derivativeBuffers == nil || n.deltasBuffers == nil ||
-		n.weightUpdateBuffers == nil || n.biasUpdateBuffers == nil {
-		n.initializeBuffers()
-		n.buffersInitialized = true
-	}
+// GetLearningRate returns the current learning rate
+func (n *Network) GetLearningRate() float64 {
+	return n.LearningRate
 }
 
-// init initializes the random seed
-func init() {
-	rand.Seed(time.Now().UnixNano())
+// SetLearningRate sets the learning rate
+func (n *Network) SetLearningRate(rate float64) {
+	if rate <= 0 {
+		panic("Learning rate must be positive")
+	}
+	n.LearningRate = rate
+}
+
+// GetLayerSizes returns the network's layer sizes
+func (n *Network) GetLayerSizes() []int {
+	return n.LayerSizes
+}
+
+// Clone creates a deep copy of the network
+func (n *Network) Clone() *Network {
+	// Clone config
+	configCopy := n.Config
+	configCopy.LayerSizes = make([]int, len(n.LayerSizes))
+	copy(configCopy.LayerSizes, n.LayerSizes)
+
+	// Clone weights and biases
+	weightsCopy := make([][][]float64, len(n.Weights))
+	for i := range n.Weights {
+		weightsCopy[i] = make([][]float64, len(n.Weights[i]))
+		for j := range n.Weights[i] {
+			weightsCopy[i][j] = make([]float64, len(n.Weights[i][j]))
+			copy(weightsCopy[i][j], n.Weights[i][j])
+		}
+	}
+
+	biasesCopy := make([][]float64, len(n.Biases))
+	for i := range n.Biases {
+		biasesCopy[i] = make([]float64, len(n.Biases[i]))
+		copy(biasesCopy[i], n.Biases[i])
+	}
+
+	// Clone optimizer
+	optimizerCopy := n.optimizer.Clone()
+
+	// Create new network
+	network := &Network{
+		Config:               configCopy,
+		Weights:              weightsCopy,
+		Biases:               biasesCopy,
+		LayerSizes:           configCopy.LayerSizes,
+		LearningRate:         n.LearningRate,
+		Activation:           n.Activation,
+		OutputActivation:     n.OutputActivation,
+		LossFunction:         n.LossFunction,
+		optimizer:            optimizerCopy,
+		buffersInitialized:   false, // Buffers will be initialized lazily
+	}
+
+	// Initialize optimizer state
+	optimizerCopy.InitializeState(configCopy.LayerSizes)
+
+	return network
+}
+
+// Save saves the network to a file
+func (n *Network) Save(filename string) error {
+	file, err := os.Create(filename)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	encoder := json.NewEncoder(file)
+	encoder.SetIndent("", "  ")
+	// Save optimizer state before encoding
+	n.OptimizerState = n.optimizer.State()
+	return encoder.Encode(n)
+}
+
+// Load loads a network from a file
+func Load(filename string) (*Network, error) {
+	file, err := os.Open(filename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var network Network
+	decoder := json.NewDecoder(file)
+	if err := decoder.Decode(&network); err != nil {
+		return nil, err
+	}
+
+	// Initialize optimizer based on config
+	if network.Config.Optimizer == nil {
+		network.Config.Optimizer = &OptimizerConfig{
+			Type:         "sgd",
+			LearningRate: network.Config.LearningRate,
+		}
+	}
+	network.optimizer = NewOptimizer(*network.Config.Optimizer)
+	network.optimizer.InitializeState(network.Config.LayerSizes)
+
+	// Restore optimizer state if available
+	if network.OptimizerState != nil {
+		if err := network.optimizer.SetState(network.OptimizerState); err != nil {
+			return nil, fmt.Errorf("failed to restore optimizer state: %w", err)
+		}
+	}
+
+	// Buffers will be initialized lazily when needed
+	network.buffersInitialized = false
+
+	return &network, nil
+}
+
+// Initialize maps for activation and loss functions
+var (
+	activationsByName map[string]ActivationFunc
+	lossesByName      map[string]LossFunc
+	once              sync.Once
+)
+
+func initMaps() {
+	once.Do(func() {
+		activationsByName = map[string]ActivationFunc{
+			"sigmoid": Sigmoid,
+			"relu":    ReLU,
+			"tanh":    Tanh,
+			"linear":  Linear,
+		}
+
+		lossesByName = map[string]LossFunc{
+			"mse":                  MeanSquaredError,
+			"binary_crossentropy":  BinaryCrossEntropy,
+		}
+	})
 }

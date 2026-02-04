@@ -31,8 +31,8 @@ func BenchmarkFeedForwardBLASSmall(b *testing.B) {
 
 	// Ensure same weights for fair comparison
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat() // Sync back to jagged format
@@ -66,8 +66,8 @@ func BenchmarkFeedForwardBLASMedium(b *testing.B) {
 	blasNet := NewBLASNetwork(config)
 
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -101,8 +101,8 @@ func BenchmarkFeedForwardBLASLarge(b *testing.B) {
 	blasNet := NewBLASNetwork(config)
 
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -136,8 +136,8 @@ func BenchmarkTrainBLASSmall(b *testing.B) {
 	blasNet := NewBLASNetwork(config)
 
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -175,8 +175,8 @@ func BenchmarkTrainBLASMedium(b *testing.B) {
 	blasNet := NewBLASNetwork(config)
 
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -247,8 +247,8 @@ func BenchmarkBatchTrainBLASSmall(b *testing.B) {
 	blasNet := NewBLASNetwork(config)
 
 	for i := range regularNet.Weights {
-		blasNet.optimizer.ConvertWeightsToFlat(i, regularNet.Weights[i])
-		blasNet.optimizer.ConvertBiasesToFlat(i, regularNet.Biases[i])
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
 	}
 	blasNet.weightsConverted = true
 	blasNet.ConvertFromFlat()
@@ -263,12 +263,76 @@ func BenchmarkBatchTrainBLASSmall(b *testing.B) {
 	})
 
 	b.Run("BLAS", func(b *testing.B) {
-		// Note: BLASNetwork doesn't have optimized BatchTrain yet,
-		// so we use regular BatchTrain but need to sync flat buffers
+		// Use the new BLAS-optimized batch training
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			blasNet.BatchTrain(inputs, targets)
-			blasNet.ConvertToFlat() // Sync changes to flat buffers
+			blasNet.BatchTrainBLAS(inputs, targets)
+		}
+	})
+}
+
+// BenchmarkBatchTrainBLASMedium compares BLAS vs regular batch training for medium batches
+func BenchmarkBatchTrainBLASMedium(b *testing.B) {
+	config := NetworkConfig{
+		LayerSizes: []int{50, 100, 20},
+	}
+	regularNet := NewNetwork(config)
+	blasNet := NewBLASNetwork(config)
+
+	for i := range regularNet.Weights {
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
+	}
+	blasNet.weightsConverted = true
+	blasNet.ConvertFromFlat()
+
+	inputs, targets := generateRandomDataBLAS(50, 20, 64) // batch size 64
+
+	b.Run("Regular", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			regularNet.BatchTrain(inputs, targets)
+		}
+	})
+
+	b.Run("BLAS", func(b *testing.B) {
+		// Use the new BLAS-optimized batch training
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			blasNet.BatchTrainBLAS(inputs, targets)
+		}
+	})
+}
+
+// BenchmarkBatchTrainBLASLarge compares BLAS vs regular batch training for large batches
+func BenchmarkBatchTrainBLASLarge(b *testing.B) {
+	config := NetworkConfig{
+		LayerSizes: []int{50, 100, 20},
+	}
+	regularNet := NewNetwork(config)
+	blasNet := NewBLASNetwork(config)
+
+	for i := range regularNet.Weights {
+		blasNet.blasOps.ConvertWeightsToFlat(i, regularNet.Weights[i])
+		blasNet.blasOps.ConvertBiasesToFlat(i, regularNet.Biases[i])
+	}
+	blasNet.weightsConverted = true
+	blasNet.ConvertFromFlat()
+
+	inputs, targets := generateRandomDataBLAS(50, 20, 256) // batch size 256
+
+	b.Run("Regular", func(b *testing.B) {
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			regularNet.BatchTrain(inputs, targets)
+		}
+	})
+
+	b.Run("BLAS", func(b *testing.B) {
+		// Use the new BLAS-optimized batch training
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			blasNet.BatchTrainBLAS(inputs, targets)
 		}
 	})
 }
