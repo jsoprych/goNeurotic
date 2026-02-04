@@ -406,10 +406,10 @@ func TrainTestSplitWindows(inputs, outputs [][]float64, testRatio float64) ([][]
 	}
 
 	for i := 0; i < testSize; i++ {
-		testInputs[trainSize+i] = make([]float64, len(inputs[trainSize+i]))
-		testOutputs[trainSize+i] = make([]float64, len(outputs[trainSize+i]))
-		copy(testInputs[trainSize+i], inputs[trainSize+i])
-		copy(testOutputs[trainSize+i], outputs[trainSize+i])
+		testInputs[i] = make([]float64, len(inputs[trainSize+i]))
+		testOutputs[i] = make([]float64, len(outputs[trainSize+i]))
+		copy(testInputs[i], inputs[trainSize+i])
+		copy(testOutputs[i], outputs[trainSize+i])
 	}
 
 	return trainInputs, trainOutputs, testInputs, testOutputs
