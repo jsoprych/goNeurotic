@@ -4,6 +4,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"math"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -590,6 +591,143 @@ func AirPassengersDataset() *CSVTimeSeriesData {
 
 	data.Stats.StartTime = data.Timestamps[0]
 	data.Stats.EndTime = data.Timestamps[len(passengers)-1]
+
+	return data
+}
+
+// SP500Dataset creates a synthetic S&P 500 index dataset (2000-2025)
+// Simulates realistic stock market behavior with trends, volatility, and crashes
+func SP500Dataset() *CSVTimeSeriesData {
+	// Create synthetic S&P 500 data from 2000-01-01 to 2025-12-31
+	// Daily frequency (approx 6525 trading days)
+
+	// Seed for reproducibility
+	rand.Seed(42)
+
+	// Parameters for synthetic generation
+	startPrice := 1500.0 // Starting price in 2000
+	trendGrowth := 0.0003 // Daily average growth (approx 7.7% annual)
+	volatility := 0.012 // Daily volatility
+	crash2008 := 0.55 // 2008 crash magnitude (45% drop)
+	covid2020 := 0.3 // 2020 crash magnitude (30% drop)
+	recoveryFactor := 1.8 // Post-crash recovery
+
+	// Create dates (weekdays only)
+	startDate := time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC) // First trading day of 2000
+	numDays := 6525 // Approx 26 years * 251 trading days/year
+
+	data := &CSVTimeSeriesData{
+		Timestamps: make([]time.Time, numDays),
+		Values:     make([]float64, numDays),
+	}
+
+	price := startPrice
+	crash2008Active := false
+	covid2020Active := false
+	recoveryPhase := false
+	recoveryCounter := 0
+
+	for i := 0; i < numDays; i++ {
+		currentDate := startDate.AddDate(0, 0, i)
+
+		// Skip weekends (Saturday=6, Sunday=0)
+		for currentDate.Weekday() == time.Saturday || currentDate.Weekday() == time.Sunday {
+			currentDate = currentDate.AddDate(0, 0, 1)
+		}
+
+		data.Timestamps[i] = currentDate
+
+		// Check for major events
+		year := currentDate.Year()
+		month := currentDate.Month()
+
+		// 2008 Financial Crisis (Sep 2008 - Mar 2009)
+		if year == 2008 && month >= time.September && !crash2008Active {
+			crash2008Active = true
+		}
+		if year == 2009 && month > time.March && crash2008Active {
+			crash2008Active = false
+			recoveryPhase = true
+			recoveryCounter = 500 // ~2 years of recovery
+		}
+
+		// 2020 COVID Crash (Mar 2020)
+		if year == 2020 && month == time.March && !covid2020Active {
+			covid2020Active = true
+		}
+		if year == 2020 && month > time.March && covid2020Active {
+			covid2020Active = false
+			recoveryPhase = true
+			recoveryCounter = 300 // ~1.2 years of recovery
+		}
+
+		// Calculate daily return
+		dailyReturn := trendGrowth
+
+		// Add random noise (normal distribution)
+		dailyReturn += rand.NormFloat64() * volatility
+
+		// Apply crashes
+		if crash2008Active {
+			dailyReturn -= crash2008 / 180 // Spread over ~6 months
+		}
+		if covid2020Active {
+			dailyReturn -= covid2020 / 30 // Spread over ~1 month
+		}
+
+		// Apply recovery
+		if recoveryPhase && recoveryCounter > 0 {
+			dailyReturn += recoveryFactor * trendGrowth
+			recoveryCounter--
+			if recoveryCounter == 0 {
+				recoveryPhase = false
+			}
+		}
+
+		// Long-term bull markets
+		if year >= 2010 && year <= 2019 {
+			dailyReturn += trendGrowth * 0.5 // Stronger growth period
+		}
+		if year >= 2021 && year <= 2025 {
+			dailyReturn += trendGrowth * 0.3 // Moderate growth
+		}
+
+		// Update price (ensure positive)
+		price *= (1 + dailyReturn)
+		if price < 100 {
+			price = 100 // Floor
+		}
+
+		data.Values[i] = math.Round(price*100) / 100 // Round to 2 decimal places
+	}
+
+	// Calculate statistics
+	var sum, sumSq float64
+	data.Stats.Min = data.Values[0]
+	data.Stats.Max = data.Values[0]
+	data.Stats.Count = numDays
+
+	for _, val := range data.Values {
+		sum += val
+		sumSq += val * val
+		if val < data.Stats.Min {
+			data.Stats.Min = val
+		}
+		if val > data.Stats.Max {
+			data.Stats.Max = val
+		}
+	}
+
+	data.Stats.Mean = sum / float64(numDays)
+	if numDays > 1 {
+		variance := (sumSq - sum*sum/float64(numDays)) / float64(numDays-1)
+		if variance > 0 {
+			data.Stats.StdDev = math.Sqrt(variance)
+		}
+	}
+
+	data.Stats.StartTime = data.Timestamps[0]
+	data.Stats.EndTime = data.Timestamps[numDays-1]
 
 	return data
 }

@@ -140,6 +140,8 @@ func (p *ForecastPipeline) LoadBuiltinDataset(datasetName string) error {
 		p.data = AirPassengersDataset()
 	case "sample":
 		p.data = CreateSampleData()
+	case "sp500":
+		p.data = SP500Dataset()
 	default:
 		return fmt.Errorf("unknown dataset: %s", datasetName)
 	}

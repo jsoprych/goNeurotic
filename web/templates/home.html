@@ -1,0 +1,275 @@
+{{define "content"}}
+<div class="content-header">
+    <h1 class="content-title">Welcome to GoNeurotic-Learn</h1>
+    <p class="content-subtitle">Master Neural Networks & Time Series Forecasting through Interactive Tutorials</p>
+</div>
+
+<!-- Hero Section -->
+<div class="card" data-animate="true" style="margin-bottom: var(--spacing-xl); background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(16, 185, 129, 0.1) 100%); border: none;">
+    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl); align-items: center;">
+        <div>
+            <h2 style="font-size: 2rem; margin-bottom: var(--spacing-md); color: var(--color-primary);">Learn by Doing</h2>
+            <p style="font-size: 1.125rem; margin-bottom: var(--spacing-lg); color: var(--color-text);">
+                GoNeurotic-Learn combines comprehensive tutorials with interactive visualizations to help you master machine learning concepts. Build neural networks, forecast time series, and deploy production pipelines—all in your browser.
+            </p>
+            <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+                <a href="/tutorial/intro-neural-networks" class="btn btn-primary">
+                    <i class="fas fa-play-circle"></i> Start Learning
+                </a>
+                <a href="/visualize/xor" class="btn btn-secondary">
+                    <i class="fas fa-gamepad"></i> Try XOR Visualizer
+                </a>
+                <a href="/syllabus" class="btn btn-outline">
+                    <i class="fas fa-book"></i> View Syllabus
+                </a>
+            </div>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 5rem; color: var(--color-primary); margin-bottom: var(--spacing-md);">
+                <i class="fas fa-brain"></i>
+            </div>
+            <div style="font-size: 0.875rem; color: var(--color-text-light);">
+                Interactive Neural Network Visualizations
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Stats -->
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+    <div class="card" data-animate="true" style="animation-delay: 100ms;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-graduation-cap" style="color: var(--color-primary); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--color-primary);">16</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">Chapters</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-animate="true" style="animation-delay: 200ms;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-clock" style="color: var(--color-secondary); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--color-secondary);">60+</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">Hours of Content</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-animate="true" style="animation-delay: 300ms;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="background-color: rgba(245, 158, 11, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-project-diagram" style="color: var(--color-accent); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--color-accent);">8</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">Interactive Tools</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card" data-animate="true" style="animation-delay: 400ms;">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+            <div style="background-color: rgba(59, 130, 246, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-database" style="color: var(--color-info); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <div style="font-size: 2rem; font-weight: 700; color: var(--color-info);">6</div>
+                <div style="font-size: 0.875rem; color: var(--color-text-light);">Built-in Datasets</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Featured Tutorials -->
+<h2 style="font-size: 1.5rem; margin-bottom: var(--spacing-lg); color: var(--color-text);">Featured Tutorials</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+    {{range .Tutorials}}
+    <div class="card" data-animate="true">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-md);">
+            <div>
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-xs); color: var(--color-text);">{{.Title}}</h3>
+                <span class="badge {{if eq .Difficulty "beginner"}}badge-beginner{{else if eq .Difficulty "intermediate"}}badge-intermediate{{else}}badge-advanced{{end}}">
+                    {{.Difficulty}}
+                </span>
+            </div>
+            <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-sm); border-radius: var(--radius-md);">
+                <i class="fas fa-{{if .HasVisual}}eye{{else}}book{{end}}" style="color: var(--color-primary);"></i>
+            </div>
+        </div>
+
+        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md); line-height: 1.5;">
+            {{.Description}}
+        </p>
+
+        <div style="margin-bottom: var(--spacing-md);">
+            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-bottom: var(--spacing-xs);">
+                <i class="far fa-clock"></i> {{.Estimated}}
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{if .Completed}}100{{else}}0{{end}}%"></div>
+            </div>
+        </div>
+
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="/tutorial/{{.ID}}" class="btn btn-primary" style="flex-grow: 1; text-align: center;">
+                <i class="fas fa-play"></i> Start
+            </a>
+            {{if .HasVisual}}
+            <a href="/visualize/{{if eq .ID "xor-problem"}}xor{{else if eq .ID "intro-time-series"}}timeseries{{else}}network{{end}}" class="btn btn-outline">
+                <i class="fas fa-eye"></i>
+            </a>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- Learning Paths -->
+<h2 style="font-size: 1.5rem; margin-bottom: var(--spacing-lg); color: var(--color-text);">Choose Your Learning Path</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-lg); margin-bottom: var(--spacing-xl);">
+    <div class="card" data-animate="true" style="border-top: 4px solid var(--color-primary);">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-layer-group" style="color: var(--color-primary); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-xs); color: var(--color-text);">Neural Network Fundamentals</h3>
+                <span class="badge badge-beginner">Beginner</span>
+            </div>
+        </div>
+
+        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md);">
+            Start with the basics: neurons, layers, activation functions, backpropagation, and the classic XOR problem.
+        </p>
+
+        <ul style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md); padding-left: var(--spacing-md);">
+            <li>6 comprehensive chapters</li>
+            <li>Interactive visualizations</li>
+            <li>Hands-on coding exercises</li>
+            <li>Real-world classification</li>
+        </ul>
+
+        <a href="/tutorials/part/fundamentals" class="btn btn-primary" style="width: 100%;">
+            <i class="fas fa-road"></i> Start This Path
+        </a>
+    </div>
+
+    <div class="card" data-animate="true" style="border-top: 4px solid var(--color-secondary);">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-chart-line" style="color: var(--color-secondary); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-xs); color: var(--color-text);">Time Series Forecasting</h3>
+                <span class="badge badge-intermediate">Intermediate</span>
+            </div>
+        </div>
+
+        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md);">
+            Master time series analysis, statistical baselines, feature engineering, and production forecasting pipelines.
+        </p>
+
+        <ul style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md); padding-left: var(--spacing-md);">
+            <li>6 in-depth chapters</li>
+            <li>9 statistical methods</li>
+            <li>Feature engineering</li>
+            <li>Production pipelines</li>
+        </ul>
+
+        <a href="/tutorials/part/timeseries" class="btn btn-secondary" style="width: 100%;">
+            <i class="fas fa-road"></i> Start This Path
+        </a>
+    </div>
+
+    <div class="card" data-animate="true" style="border-top: 4px solid var(--color-accent);">
+        <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+            <div style="background-color: rgba(245, 158, 11, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                <i class="fas fa-rocket" style="color: var(--color-accent); font-size: 1.5rem;"></i>
+            </div>
+            <div>
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-xs); color: var(--color-text);">Advanced Topics</h3>
+                <span class="badge badge-advanced">Advanced</span>
+            </div>
+        </div>
+
+        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md);">
+            Dive deep into hyperparameter optimization, uncertainty quantification, multivariate forecasting, and real applications.
+        </p>
+
+        <ul style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md); padding-left: var(--spacing-md);">
+            <li>4 advanced chapters</li>
+            <li>Hyperparameter tuning</li>
+            <li>Uncertainty quantification</li>
+            <li>Real-world projects</li>
+        </ul>
+
+        <a href="/tutorials/part/advanced" class="btn btn-accent" style="width: 100%;">
+            <i class="fas fa-road"></i> Start This Path
+        </a>
+    </div>
+</div>
+
+<!-- Quick Start Guide -->
+<div class="card" data-animate="true" style="margin-bottom: var(--spacing-xl); background-color: rgba(99, 102, 241, 0.05);">
+    <h2 style="font-size: 1.5rem; margin-bottom: var(--spacing-lg); color: var(--color-text);">Quick Start Guide</h2>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: var(--spacing-lg);">
+        <div style="text-align: center;">
+            <div style="background-color: var(--color-primary); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--spacing-md); font-weight: bold;">1</div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Explore Tutorials</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-light);">Browse our comprehensive syllabus and choose where to start.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="background-color: var(--color-secondary); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--spacing-md); font-weight: bold;">2</div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Learn Interactively</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-light);">Follow tutorials with live code examples and visualizations.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="background-color: var(--color-accent); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--spacing-md); font-weight: bold;">3</div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Practice with Tools</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-light);">Use interactive visualizers to experiment with concepts.</p>
+        </div>
+
+        <div style="text-align: center;">
+            <div style="background-color: var(--color-info); color: white; width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto var(--spacing-md); font-weight: bold;">4</div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Build Projects</h3>
+            <p style="font-size: 0.875rem; color: var(--color-text-light);">Apply your knowledge to real-world forecasting problems.</p>
+        </div>
+    </div>
+
+    <div style="text-align: center; margin-top: var(--spacing-xl);">
+        <a href="/tutorial/intro-neural-networks" class="btn btn-primary" style="min-width: 200px;">
+            <i class="fas fa-rocket"></i> Launch Your Journey
+        </a>
+    </div>
+</div>
+
+<!-- API Server Status -->
+<div class="alert alert-info" data-animate="true" style="display: flex; align-items: center; gap: var(--spacing-md);">
+    <div style="font-size: 1.5rem;">
+        <i class="fas fa-server"></i>
+    </div>
+    <div style="flex-grow: 1;">
+        <div style="font-weight: 600; margin-bottom: var(--spacing-xs);">GoNeurotic API Server</div>
+        <div style="font-size: 0.875rem;">This educational platform connects to the GoNeurotic API server running at <code>{{.Config.APIServerURL}}</code>. All neural network computations are performed by the production-grade backend.</div>
+    </div>
+    <a href="{{.Config.APIServerURL}}/health" target="_blank" class="btn btn-outline" style="white-space: nowrap;">
+        <i class="fas fa-external-link-alt"></i> Check Status
+    </a>
+</div>
+
+<!-- Last Updated -->
+<div style="text-align: center; margin-top: var(--spacing-xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+    <p style="font-size: 0.875rem; color: var(--color-text-light);">
+        <i class="far fa-clock"></i> Page loaded: {{.CurrentTime}}
+    </p>
+</div>
+{{end}}

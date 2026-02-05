@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{if .Title}}{{.Title}} - {{end}}GoNeurotic-Learn</title>
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- CSS Variables for Theming -->
+    <style>
+        :root {
+            /* Color Palette - Modern & Colorful */
+            --color-primary: #6366f1;    /* Indigo */
+            --color-primary-dark: #4f46e5;
+            --color-primary-light: #818cf8;
+            --color-secondary: #10b981;  /* Emerald */
+            --color-secondary-dark: #059669;
+            --color-secondary-light: #34d399;
+            --color-accent: #f59e0b;     /* Amber */
+            --color-accent-dark: #d97706;
+            --color-accent-light: #fbbf24;
+            --color-background: #f8fafc; /* Slate */
+            --color-surface: #ffffff;
+            --color-text: #1f2937;
+            --color-text-light: #6b7280;
+            --color-border: #e5e7eb;
+            --color-success: #10b981;
+            --color-warning: #f59e0b;
+            --color-error: #ef4444;
+            --color-info: #3b82f6;
+
+            /* Typography */
+            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Courier New', monospace;
+
+            /* Spacing */
+            --spacing-xs: 0.25rem;
+            --spacing-sm: 0.5rem;
+            --spacing-md: 1rem;
+            --spacing-lg: 1.5rem;
+            --spacing-xl: 2rem;
+            --spacing-xxl: 3rem;
+
+            /* Border Radius */
+            --radius-sm: 0.375rem;
+            --radius-md: 0.5rem;
+            --radius-lg: 0.75rem;
+            --radius-xl: 1rem;
+
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+            /* Transitions */
+            --transition-fast: 150ms ease;
+            --transition-normal: 250ms ease;
+            --transition-slow: 350ms ease;
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --color-background: #111827;
+                --color-surface: #1f2937;
+                --color-text: #f9fafb;
+                --color-text-light: #9ca3af;
+                --color-border: #374151;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-primary);
+            color: var(--color-text);
+            background-color: var(--color-background);
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a {
+            color: var(--color-primary);
+            text-decoration: none;
+            transition: color var(--transition-fast);
+        }
+
+        a:hover {
+            color: var(--color-primary-dark);
+        }
+
+        code, pre {
+            font-family: var(--font-mono);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 var(--spacing-md);
+        }
+
+        /* Header Styles */
+        .header {
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+            color: white;
+            padding: var(--spacing-lg) 0;
+            box-shadow: var(--shadow-md);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-md);
+        }
+
+        .logo-icon {
+            font-size: 2rem;
+            background: rgba(255, 255, 255, 0.2);
+            padding: var(--spacing-sm);
+            border-radius: var(--radius-lg);
+        }
+
+        .logo-text h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-xs);
+        }
+
+        .logo-text p {
+            font-size: 0.875rem;
+            opacity: 0.9;
+        }
+
+        .nav-main {
+            display: flex;
+            gap: var(--spacing-lg);
+        }
+
+        .nav-link {
+            color: white;
+            font-weight: 500;
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-sm);
+            transition: background-color var(--transition-fast);
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+        }
+
+        .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+        }
+
+        /* Mobile menu toggle */
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* Main Layout */
+        .main-layout {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            gap: var(--spacing-xl);
+            padding: var(--spacing-xl) 0;
+            flex-grow: 1;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            height: fit-content;
+            position: sticky;
+            top: calc(80px + var(--spacing-xl));
+        }
+
+        .sidebar-section {
+            margin-bottom: var(--spacing-xl);
+        }
+
+        .sidebar-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .sidebar-title {
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--color-text-light);
+            margin-bottom: var(--spacing-md);
+            font-weight: 600;
+        }
+
+        .sidebar-list {
+            list-style: none;
+        }
+
+        .sidebar-item {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .sidebar-link {
+            display: flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-md);
+            border-radius: var(--radius-md);
+            color: var(--color-text);
+            transition: all var(--transition-fast);
+        }
+
+        .sidebar-link:hover {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--color-primary);
+        }
+
+        .sidebar-link.active {
+            background-color: rgba(99, 102, 241, 0.15);
+            color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .sidebar-icon {
+            width: 20px;
+            text-align: center;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: var(--spacing-xs) var(--spacing-sm);
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: var(--radius-sm);
+            margin-left: auto;
+        }
+
+        .badge-beginner {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--color-secondary);
+        }
+
+        .badge-intermediate {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--color-accent);
+        }
+
+        .badge-advanced {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--color-error);
+        }
+
+        /* Main Content */
+        .main-content {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-xl);
+            box-shadow: var(--shadow-md);
+        }
+
+        .content-header {
+            margin-bottom: var(--spacing-xl);
+            padding-bottom: var(--spacing-lg);
+            border-bottom: 2px solid var(--color-border);
+        }
+
+        .content-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-md);
+            background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .content-subtitle {
+            font-size: 1.125rem;
+            color: var(--color-text-light);
+            font-weight: 400;
+        }
+
+        /* Footer */
+        .footer {
+            background-color: var(--color-surface);
+            border-top: 1px solid var(--color-border);
+            padding: var(--spacing-xl) 0;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: var(--spacing-xl);
+        }
+
+        .footer-section h3 {
+            font-size: 1.125rem;
+            margin-bottom: var(--spacing-md);
+            color: var(--color-text);
+        }
+
+        .footer-links {
+            list-style: none;
+        }
+
+        .footer-links li {
+            margin-bottom: var(--spacing-sm);
+        }
+
+        .copyright {
+            text-align: center;
+            padding-top: var(--spacing-xl);
+            margin-top: var(--spacing-xl);
+            border-top: 1px solid var(--color-border);
+            color: var(--color-text-light);
+            font-size: 0.875rem;
+        }
+
+        /* Utility Classes */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            padding: var(--spacing-sm) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            border: none;
+            font-family: var(--font-primary);
+        }
+
+        .btn-primary {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--color-primary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background-color: var(--color-secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--color-secondary-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-accent {
+            background-color: var(--color-accent);
+            color: white;
+        }
+
+        .btn-accent:hover {
+            background-color: var(--color-accent-dark);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 2px solid var(--color-primary);
+            color: var(--color-primary);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--color-primary);
+            color: white;
+        }
+
+        .card {
+            background-color: var(--color-surface);
+            border-radius: var(--radius-lg);
+            padding: var(--spacing-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--color-border);
+            transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .alert {
+            padding: var(--spacing-md) var(--spacing-lg);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--spacing-lg);
+            border-left: 4px solid;
+        }
+
+        .alert-info {
+            background-color: rgba(59, 130, 246, 0.1);
+            border-left-color: var(--color-info);
+            color: var(--color-info);
+        }
+
+        .alert-success {
+            background-color: rgba(16, 185, 129, 0.1);
+            border-left-color: var(--color-success);
+            color: var(--color-success);
+        }
+
+        .alert-warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            border-left-color: var(--color-warning);
+            color: var(--color-warning);
+        }
+
+        .alert-error {
+            background-color: rgba(239, 68, 68, 0.1);
+            border-left-color: var(--color-error);
+            color: var(--color-error);
+        }
+
+        /* Progress Indicators */
+        .progress-bar {
+            height: 8px;
+            background-color: var(--color-border);
+            border-radius: var(--radius-sm);
+            overflow: hidden;
+            margin: var(--spacing-md) 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--color-primary) 0%, var(--color-secondary) 100%);
+            border-radius: var(--radius-sm);
+            transition: width var(--transition-slow);
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 240px 1fr;
+                gap: var(--spacing-lg);
+            }
+        }
+
+        @media (max-width: 768px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                display: none;
+            }
+
+            .sidebar.mobile-open {
+                display: block;
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 280px;
+                height: 100vh;
+                z-index: 1000;
+                border-radius: 0;
+                padding-top: var(--spacing-xxl);
+                overflow-y: auto;
+            }
+
+            .menu-toggle {
+                display: block;
+            }
+
+            .header-content {
+                position: relative;
+            }
+
+            .nav-main {
+                position: fixed;
+                top: 80px;
+                left: 0;
+                width: 100%;
+                background-color: var(--color-primary-dark);
+                flex-direction: column;
+                padding: var(--spacing-md);
+                display: none;
+                box-shadow: var(--shadow-lg);
+            }
+
+            .nav-main.mobile-open {
+                display: flex;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 var(--spacing-sm);
+            }
+
+            .main-content {
+                padding: var(--spacing-lg);
+            }
+
+            .content-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+
+        /* Code Block Styling */
+        .code-block {
+            background-color: rgba(0, 0, 0, 0.05);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            overflow-x: auto;
+            margin: var(--spacing-lg) 0;
+            font-family: var(--font-mono);
+            font-size: 0.875rem;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .code-block {
+                background-color: rgba(255, 255, 255, 0.05);
+            }
+        }
+    </style>
+
+    <!-- Additional page-specific CSS -->
+    <style>
+        /* Additional styles can be added here */
+    </style>
+
+    <!-- JavaScript for interactive elements -->
+    <script>
+        // Mobile menu toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const menuToggle = document.querySelector('.menu-toggle');
+            const navMain = document.querySelector('.nav-main');
+            const sidebar = document.querySelector('.sidebar');
+
+            if (menuToggle) {
+                menuToggle.addEventListener('click', function() {
+                    navMain.classList.toggle('mobile-open');
+                    sidebar.classList.toggle('mobile-open');
+                });
+            }
+
+            // Close mobile menu when clicking outside
+            document.addEventListener('click', function(event) {
+                if (window.innerWidth <= 768) {
+                    if (!event.target.closest('.header') && !event.target.closest('.sidebar')) {
+                        navMain.classList.remove('mobile-open');
+                        sidebar.classList.remove('mobile-open');
+                    }
+                }
+            });
+
+            // Set active nav link based on current page
+            const currentPath = window.location.pathname;
+            const navLinks = document.querySelectorAll('.nav-link');
+            const sidebarLinks = document.querySelectorAll('.sidebar-link');
+
+            navLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+
+            sidebarLinks.forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+
+            // Smooth scroll for anchor links
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+    </script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>GoNeurotic-Learn</h1>
+                        <p>Neural Networks & Time Series Tutorials</p>
+                    </div>
+                </div>
+
+                <button class="menu-toggle" aria-label="Toggle menu">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <nav class="nav-main">
+                    <a href="/" class="nav-link">
+                        <i class="fas fa-home"></i> Home
+                    </a>
+                    <a href="/tutorials" class="nav-link">
+                        <i class="fas fa-graduation-cap"></i> Tutorials
+                    </a>
+                    <a href="/visualize/network" class="nav-link">
+                        <i class="fas fa-project-diagram"></i> Visualizations
+                    </a>
+                    <a href="/progress" class="nav-link">
+                        <i class="fas fa-chart-line"></i> Progress
+                    </a>
+                    <a href="/syllabus" class="nav-link">
+                        <i class="fas fa-book"></i> Syllabus
+                    </a>
+                    <a href="/about" class="nav-link">
+                        <i class="fas fa-info-circle"></i> About
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Layout -->
+    <div class="container">
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Learning Paths</h3>
+                    <ul class="sidebar-list">
+                        <li class="sidebar-item">
+                            <a href="/tutorials/part/fundamentals" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-layer-group"></i></span>
+                                <span>Neural Network Fundamentals</span>
+                                <span class="badge badge-beginner">6 Chapters</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/tutorials/part/timeseries" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-chart-line"></i></span>
+                                <span>Time Series Forecasting</span>
+                                <span class="badge badge-intermediate">6 Chapters</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/tutorials/part/advanced" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-rocket"></i></span>
+                                <span>Advanced Topics</span>
+                                <span class="badge badge-advanced">4 Chapters</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Featured Tutorials</h3>
+                    <ul class="sidebar-list">
+                        <li class="sidebar-item">
+                            <a href="/tutorial/intro-neural-networks" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-neuter"></i></span>
+                                <span>Intro to Neural Networks</span>
+                                <span class="badge badge-beginner">Ch 1</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/tutorial/xor-problem" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-puzzle-piece"></i></span>
+                                <span>The XOR Problem</span>
+                                <span class="badge badge-beginner">Ch 3</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/tutorial/intro-time-series" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-chart-area"></i></span>
+                                <span>Intro to Time Series</span>
+                                <span class="badge badge-intermediate">Ch 7</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/tutorial/airpassengers-challenge" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-plane"></i></span>
+                                <span>AirPassengers Challenge</span>
+                                <span class="badge badge-intermediate">Ch 11</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Quick Links</h3>
+                    <ul class="sidebar-list">
+                        <li class="sidebar-item">
+                            <a href="/visualize/xor" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-gamepad"></i></span>
+                                <span>XOR Visualizer</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/visualize/activations" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-wave-square"></i></span>
+                                <span>Activation Functions</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/visualize/timeseries" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-chart-bar"></i></span>
+                                <span>Time Series Plotter</span>
+                            </a>
+                        </li>
+                        <li class="sidebar-item">
+                            <a href="/progress/badges" class="sidebar-link">
+                                <span class="sidebar-icon"><i class="fas fa-trophy"></i></span>
+                                <span>Your Badges</span>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="sidebar-section">
+                    <div class="card">
+                        <h4>Your Progress</h4>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: 25%"></div>
+                        </div>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-sm);">
+                            3 of 16 tutorials completed
+                        </p>
+                        <a href="/progress" class="btn btn-primary" style="width: 100%; margin-top: var(--spacing-md);">
+                            <i class="fas fa-chart-line"></i> View Details
+                        </a>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                {{template "content" .}}
+            </main>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>GoNeurotic-Learn</h3>
+                    <p>An interactive learning platform for neural networks and time series forecasting using GoNeurotic framework.</p>
+                    <div style="margin-top: var(--spacing-md);">
+                        <a href="https://github.com/jsoprych/goNeurotic" class="btn btn-outline" style="margin-right: var(--spacing-sm);">
+                            <i class="fab fa-github"></i> GitHub
+                        </a>
+                        <a href="/about" class="btn btn-outline">
+                            <i class="fas fa-book"></i> Documentation
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Quick Links</h3>
+                    <ul class="footer-links">
+                        <li><a href="/tutorials"><i class="fas fa-chevron-right"></i> All Tutorials</a></li>
+                        <li><a href="/syllabus"><i class="fas fa-chevron-right"></i> Complete Syllabus</a></li>
+                        <li><a href="/visualize/network"><i class="fas fa-chevron-right"></i> Visualizations</a></li>
+                        <li><a href="/progress"><i class="fas fa-chevron-right"></i> Your Progress</a></li>
+                        <li><a href="/help"><i class="fas fa-chevron-right"></i> Help & Support</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Learning Paths</h3>
+                    <ul class="footer-links">
+                        <li><a href="/tutorials/part/fundamentals"><i class="fas fa-layer-group"></i> Neural Network Fundamentals</a></li>
+                        <li><a href="/tutorials/part/timeseries"><i class="fas fa-chart-line"></i> Time Series Forecasting</a></li>
+                        <li><a href="/tutorials/part/advanced"><i class="fas fa-rocket"></i> Advanced Topics</a></li>
+                        <li><a href="/tutorial/intro-neural-networks"><i class="fas fa-play-circle"></i> Start Learning</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h3>Connect</h3>
+                    <p>Have questions or feedback? We'd love to hear from you!</p>
+                    <div style="margin-top: var(--spacing-md); display: flex; gap: var(--spacing-sm);">
+                        <a href="#" class="btn" style="background-color: #1DA1F2; color: white;">
+                            <i class="fab fa-twitter"></i>
+                        </a>
+                        <a href="#" class="btn" style="background-color: #333; color: white;">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="#" class="btn" style="background-color: #0077B5; color: white;">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="#" class="btn" style="background-color: #7289DA; color: white;">
+                            <i class="fab fa-discord"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="copyright">
+                <p>&copy; 2025 GoNeurotic-Learn. All rights reserved. | Version 1.0.0 | Built with ❤️ for ML education</p>
+                <p style="margin-top: var(--spacing-xs); font-size: 0.75rem;">
+                    Neural network icons by Font Awesome. Color palette inspired by Tailwind CSS.
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Page-specific JavaScript -->
+    <script>
+        // Initialize tooltips
+        document.querySelectorAll('[title]').forEach(el => {
+            el.addEventListener('mouseenter', function(e) {
+                // Simple tooltip implementation
+                const tooltip = document.createElement('div');
+                tooltip.className = 'tooltip';
+                tooltip.textContent = this.getAttribute('title');
+                tooltip.style.cssText = `
+                    position: absolute;
+                    background: var(--color-surface);
+                    color: var(--color-text);
+                    padding: var(--spacing-sm) var(--spacing-md);
+                    border-radius: var(--radius-sm);
+                    box-shadow: var(--shadow-lg);
+                    z-index: 10000;
+                    font-size: 0.875rem;
+                    max-width: 200px;
+                    border: 1px solid var(--color-border);
+                `;
+
+                document.body.appendChild(tooltip);
+                const rect = this.getBoundingClientRect();
+                tooltip.style.top = (rect.top - tooltip.offsetHeight - 10) + 'px';
+                tooltip.style.left = (rect.left + rect.width/2 - tooltip.offsetWidth/2) + 'px';
+
+                this._tooltip = tooltip;
+            });
+
+            el.addEventListener('mouseleave', function() {
+                if (this._tooltip) {
+                    this._tooltip.remove();
+                    this._tooltip = null;
+                }
+            });
+        });
+
+        // Add animation to elements with data-animate attribute
+        document.addEventListener('DOMContentLoaded', function() {
+            const animatedElements = document.querySelectorAll('[data-animate]');
+            animatedElements.forEach((el, index) => {
+                setTimeout(() => {
+                    el.classList.add('animate-fade-in');
+                }, index * 100);
+            });
+        });
+    </script>
+</body>
+</html>

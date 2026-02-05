@@ -1,0 +1,487 @@
+{{define "content"}}
+<div class="content-header">
+    <h1 class="content-title">All Tutorials</h1>
+    <p class="content-subtitle">Explore our comprehensive curriculum of neural networks and time series forecasting tutorials</p>
+</div>
+
+<!-- Filter Controls -->
+<div class="card" style="margin-bottom: var(--spacing-xl);">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-md);">
+        <div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Filter Tutorials</h3>
+            <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+                <button class="btn filter-btn active" data-filter="all">
+                    <i class="fas fa-layer-group"></i> All
+                </button>
+                <button class="btn filter-btn" data-filter="fundamentals">
+                    <i class="fas fa-layer-group"></i> Neural Network Fundamentals
+                </button>
+                <button class="btn filter-btn" data-filter="timeseries">
+                    <i class="fas fa-chart-line"></i> Time Series Forecasting
+                </button>
+                <button class="btn filter-btn" data-filter="advanced">
+                    <i class="fas fa-rocket"></i> Advanced Topics
+                </button>
+            </div>
+        </div>
+
+        <div>
+            <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Difficulty</h3>
+            <div style="display: flex; gap: var(--spacing-sm); flex-wrap: wrap;">
+                <button class="btn filter-btn" data-difficulty="all">
+                    All Levels
+                </button>
+                <button class="btn filter-btn" data-difficulty="beginner">
+                    <span class="badge badge-beginner">Beginner</span>
+                </button>
+                <button class="btn filter-btn" data-difficulty="intermediate">
+                    <span class="badge badge-intermediate">Intermediate</span>
+                </button>
+                <button class="btn filter-btn" data-difficulty="advanced">
+                    <span class="badge badge-advanced">Advanced</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div style="margin-top: var(--spacing-lg);">
+        <div style="position: relative;">
+            <input type="text" id="tutorial-search" placeholder="Search tutorials..." style="width: 100%; padding: var(--spacing-md) var(--spacing-lg) var(--spacing-md) 3rem; border: 1px solid var(--color-border); border-radius: var(--radius-md); font-family: var(--font-primary); font-size: 1rem; background-color: var(--color-surface); color: var(--color-text);">
+            <div style="position: absolute; left: var(--spacing-lg); top: 50%; transform: translateY(-50%); color: var(--color-text-light);">
+                <i class="fas fa-search"></i>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tutorial Count -->
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-lg);">
+    <div>
+        <h3 style="font-size: 1.125rem; color: var(--color-text);">
+            Showing <span id="tutorial-count">{{len .Tutorials}}</span> of {{len .Tutorials}} tutorials
+        </h3>
+    </div>
+    <div style="display: flex; gap: var(--spacing-sm);">
+        <button class="btn btn-outline" id="sort-by-chapter">
+            <i class="fas fa-sort-numeric-down"></i> Sort by Chapter
+        </button>
+        <button class="btn btn-outline" id="sort-by-difficulty">
+            <i class="fas fa-signal"></i> Sort by Difficulty
+        </button>
+    </div>
+</div>
+
+<!-- Tutorial Grid -->
+<div id="tutorial-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: var(--spacing-lg);">
+    {{range .Tutorials}}
+    <div class="card tutorial-card" data-animate="true"
+         data-part="{{.Part}}"
+         data-difficulty="{{.Difficulty}}"
+         data-chapter="{{.Chapter}}"
+         data-title="{{lower .Title}}">
+        <!-- Card Header -->
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: var(--spacing-md);">
+            <div>
+                <div style="display: flex; align-items: center; gap: var(--spacing-sm); margin-bottom: var(--spacing-xs);">
+                    <span style="font-size: 0.875rem; font-weight: 600; color: var(--color-primary); background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm);">
+                        Chapter {{.Chapter}}
+                    </span>
+                    <span class="badge {{if eq .Difficulty "beginner"}}badge-beginner{{else if eq .Difficulty "intermediate"}}badge-intermediate{{else}}badge-advanced{{end}}">
+                        {{.Difficulty}}
+                    </span>
+                </div>
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-xs); color: var(--color-text);">{{.Title}}</h3>
+                <div style="font-size: 0.75rem; color: var(--color-text-light);">
+                    <i class="far fa-clock"></i> {{.Estimated}} •
+                    <i class="fas fa-{{if .HasVisual}}eye{{else}}book{{end}}"></i> {{if .HasVisual}}Visual{{else}}Reading{{end}} •
+                    <i class="fas fa-{{if .HasCode}}code{{else}}file-alt{{end}}"></i> {{if .HasCode}}Code{{else}}Theory{{end}}
+                </div>
+            </div>
+            <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-sm); border-radius: var(--radius-md);">
+                {{if eq .Part "fundamentals"}}
+                <i class="fas fa-layer-group" style="color: var(--color-primary);"></i>
+                {{else if eq .Part "timeseries"}}
+                <i class="fas fa-chart-line" style="color: var(--color-secondary);"></i>
+                {{else}}
+                <i class="fas fa-rocket" style="color: var(--color-accent);"></i>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Description -->
+        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-bottom: var(--spacing-md); line-height: 1.5; min-height: 4rem;">
+            {{.Description}}
+        </p>
+
+        <!-- Learning Objectives (Collapsible) -->
+        <div style="margin-bottom: var(--spacing-md);">
+            <details style="font-size: 0.875rem;">
+                <summary style="cursor: pointer; color: var(--color-primary); font-weight: 500; padding: var(--spacing-xs) 0;">
+                    <i class="fas fa-chevron-right" style="transition: transform var(--transition-fast);"></i>
+                    Learning Objectives
+                </summary>
+                <ul style="margin-top: var(--spacing-sm); padding-left: var(--spacing-lg); color: var(--color-text-light);">
+                    {{range .Objectives}}
+                    <li style="margin-bottom: var(--spacing-xs);">{{.}}</li>
+                    {{end}}
+                </ul>
+            </details>
+        </div>
+
+        <!-- Required Data -->
+        <div style="margin-bottom: var(--spacing-md);">
+            <div style="font-size: 0.75rem; color: var(--color-text-light); margin-bottom: var(--spacing-xs);">
+                <i class="fas fa-database"></i> Required Data:
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-xs);">
+                {{range .Data}}
+                <span style="font-size: 0.75rem; background-color: rgba(59, 130, 246, 0.1); color: var(--color-info); padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm);">
+                    {{.}}
+                </span>
+                {{end}}
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div style="margin-bottom: var(--spacing-md);">
+            <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-light); margin-bottom: var(--spacing-xs);">
+                <span>Progress</span>
+                <span>{{if .Completed}}Completed{{else}}Not started{{end}}</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" style="width: {{if .Completed}}100{{else}}0{{end}}%"></div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="display: flex; gap: var(--spacing-sm);">
+            <a href="/tutorial/{{.ID}}" class="btn btn-primary" style="flex-grow: 1; text-align: center;">
+                <i class="fas fa-play"></i> Start Tutorial
+            </a>
+            {{if .HasVisual}}
+            <a href="/visualize/{{if eq .ID "xor-problem"}}xor{{else if eq .ID "intro-time-series"}}timeseries{{else if eq .ID "airpassengers-challenge"}}timeseries{{else}}network{{end}}" class="btn btn-outline" title="Interactive Visualization">
+                <i class="fas fa-eye"></i>
+            </a>
+            {{end}}
+            <button class="btn btn-outline mark-complete-btn" data-tutorial-id="{{.ID}}" title="Mark as Complete">
+                <i class="fas fa-check"></i>
+            </button>
+        </div>
+    </div>
+    {{end}}
+</div>
+
+<!-- Empty State -->
+<div id="no-results" style="display: none; text-align: center; padding: var(--spacing-xxl) 0;">
+    <div style="font-size: 4rem; color: var(--color-border); margin-bottom: var(--spacing-lg);">
+        <i class="fas fa-search"></i>
+    </div>
+    <h3 style="font-size: 1.5rem; margin-bottom: var(--spacing-md); color: var(--color-text);">No tutorials found</h3>
+    <p style="color: var(--color-text-light); margin-bottom: var(--spacing-lg); max-width: 400px; margin-left: auto; margin-right: auto;">
+        Try adjusting your filters or search term to find what you're looking for.
+    </p>
+    <button class="btn btn-primary" id="clear-filters">
+        <i class="fas fa-times"></i> Clear All Filters
+    </button>
+</div>
+
+<!-- Part-Specific Header (if filtered by part) -->
+{{if .Data}}
+<div class="alert alert-info" style="margin-top: var(--spacing-xl);">
+    <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+        <div style="font-size: 1.5rem;">
+            {{if eq .Data "fundamentals"}}
+            <i class="fas fa-layer-group" style="color: var(--color-primary);"></i>
+            {{else if eq .Data "timeseries"}}
+            <i class="fas fa-chart-line" style="color: var(--color-secondary);"></i>
+            {{else}}
+            <i class="fas fa-rocket" style="color: var(--color-accent);"></i>
+            {{end}}
+        </div>
+        <div>
+            <div style="font-weight: 600; margin-bottom: var(--spacing-xs);">
+                {{if eq .Data "fundamentals"}}Neural Network Fundamentals{{else if eq .Data "timeseries"}}Time Series Forecasting{{else}}Advanced Topics{{end}}
+            </div>
+            <div style="font-size: 0.875rem;">
+                {{if eq .Data "fundamentals"}}
+                This path covers the fundamentals of neural networks, from basic concepts to practical implementation. Perfect for beginners!
+                {{else if eq .Data "timeseries"}}
+                Master time series analysis, forecasting techniques, and production pipelines. Requires basic neural network knowledge.
+                {{else}}
+                Advanced topics including hyperparameter optimization, uncertainty quantification, and real-world applications.
+                {{end}}
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+<!-- JavaScript for Filtering -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const tutorialCards = document.querySelectorAll('.tutorial-card');
+        const filterButtons = document.querySelectorAll('.filter-btn');
+        const searchInput = document.getElementById('tutorial-search');
+        const tutorialCount = document.getElementById('tutorial-count');
+        const noResults = document.getElementById('no-results');
+        const tutorialGrid = document.getElementById('tutorial-grid');
+        const clearFiltersBtn = document.getElementById('clear-filters');
+        const sortByChapterBtn = document.getElementById('sort-by-chapter');
+        const sortByDifficultyBtn = document.getElementById('sort-by-difficulty');
+
+        let activeFilter = 'all';
+        let activeDifficulty = 'all';
+        let searchQuery = '';
+
+        // Initialize filter buttons
+        filterButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                const filter = this.getAttribute('data-filter');
+                const difficulty = this.getAttribute('data-difficulty');
+
+                // Update active filters
+                if (filter) {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    activeFilter = filter;
+                }
+
+                if (difficulty) {
+                    // Remove active from all difficulty buttons
+                    document.querySelectorAll('[data-difficulty]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    activeDifficulty = difficulty;
+                }
+
+                filterTutorials();
+            });
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', function() {
+            searchQuery = this.value.toLowerCase().trim();
+            filterTutorials();
+        });
+
+        // Clear filters
+        clearFiltersBtn.addEventListener('click', function() {
+            activeFilter = 'all';
+            activeDifficulty = 'all';
+            searchQuery = '';
+            searchInput.value = '';
+
+            // Reset filter buttons
+            filterButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('data-filter') === 'all' || btn.getAttribute('data-difficulty') === 'all') {
+                    btn.classList.add('active');
+                }
+            });
+
+            filterTutorials();
+        });
+
+        // Sort by chapter
+        sortByChapterBtn.addEventListener('click', function() {
+            const cards = Array.from(tutorialCards);
+            cards.sort((a, b) => {
+                const chapterA = parseInt(a.getAttribute('data-chapter'));
+                const chapterB = parseInt(b.getAttribute('data-chapter'));
+                return chapterA - chapterB;
+            });
+
+            // Reorder grid
+            tutorialGrid.innerHTML = '';
+            cards.forEach(card => tutorialGrid.appendChild(card));
+        });
+
+        // Sort by difficulty
+        sortByDifficultyBtn.addEventListener('click', function() {
+            const difficultyOrder = { beginner: 0, intermediate: 1, advanced: 2 };
+            const cards = Array.from(tutorialCards);
+            cards.sort((a, b) => {
+                const diffA = difficultyOrder[a.getAttribute('data-difficulty')];
+                const diffB = difficultyOrder[b.getAttribute('data-difficulty')];
+                return diffA - diffB;
+            });
+
+            // Reorder grid
+            tutorialGrid.innerHTML = '';
+            cards.forEach(card => tutorialGrid.appendChild(card));
+        });
+
+        // Mark as complete functionality
+        document.querySelectorAll('.mark-complete-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const tutorialId = this.getAttribute('data-tutorial-id');
+                const card = this.closest('.tutorial-card');
+                const progressFill = card.querySelector('.progress-fill');
+                const progressText = card.querySelector('.progress-bar + div span:last-child');
+
+                // Toggle completion
+                const isCompleted = progressFill.style.width === '100%';
+
+                if (isCompleted) {
+                    progressFill.style.width = '0%';
+                    progressText.textContent = 'Not started';
+                    this.innerHTML = '<i class="fas fa-check"></i>';
+                } else {
+                    progressFill.style.width = '100%';
+                    progressText.textContent = 'Completed';
+                    this.innerHTML = '<i class="fas fa-undo"></i>';
+
+                    // Show confetti effect
+                    showCompletionEffect(card);
+                }
+
+                // Send to server (in a real app)
+                fetch(`/progress/${tutorialId}/complete`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                }).catch(err => console.log('Demo mode - progress not saved'));
+            });
+        });
+
+        // Filter tutorials function
+        function filterTutorials() {
+            let visibleCount = 0;
+
+            tutorialCards.forEach(card => {
+                const part = card.getAttribute('data-part');
+                const difficulty = card.getAttribute('data-difficulty');
+                const title = card.getAttribute('data-title');
+                const chapter = parseInt(card.getAttribute('data-chapter'));
+
+                let matchesFilter = activeFilter === 'all' || part === activeFilter;
+                let matchesDifficulty = activeDifficulty === 'all' || difficulty === activeDifficulty;
+                let matchesSearch = !searchQuery ||
+                    title.includes(searchQuery) ||
+                    card.textContent.toLowerCase().includes(searchQuery);
+
+                if (matchesFilter && matchesDifficulty && matchesSearch) {
+                    card.style.display = 'block';
+                    visibleCount++;
+
+                    // Add animation
+                    card.classList.add('animate-fade-in');
+                } else {
+                    card.style.display = 'none';
+                    card.classList.remove('animate-fade-in');
+                }
+            });
+
+            // Update count
+            tutorialCount.textContent = visibleCount;
+
+            // Show/hide no results message
+            if (visibleCount === 0) {
+                noResults.style.display = 'block';
+                tutorialGrid.style.display = 'none';
+            } else {
+                noResults.style.display = 'none';
+                tutorialGrid.style.display = 'grid';
+            }
+        }
+
+        // Simple completion effect
+        function showCompletionEffect(element) {
+            const rect = element.getBoundingClientRect();
+            const emojis = ['🎉', '✨', '🌟', '🚀', '🧠', '📈'];
+
+            for (let i = 0; i < 10; i++) {
+                setTimeout(() => {
+                    const emoji = document.createElement('div');
+                    emoji.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+                    emoji.style.cssText = `
+                        position: fixed;
+                        left: ${rect.left + Math.random() * rect.width}px;
+                        top: ${rect.top + Math.random() * rect.height}px;
+                        font-size: 1.5rem;
+                        z-index: 10000;
+                        pointer-events: none;
+                        animation: floatUp 1s ease-out forwards;
+                    `;
+
+                    document.body.appendChild(emoji);
+
+                    // Remove after animation
+                    setTimeout(() => emoji.remove(), 1000);
+                }, i * 100);
+            }
+
+            // Add CSS animation
+            if (!document.querySelector('#float-animation')) {
+                const style = document.createElement('style');
+                style.id = 'float-animation';
+                style.textContent = `
+                    @keyframes floatUp {
+                        0% { transform: translateY(0) scale(1); opacity: 1; }
+                        100% { transform: translateY(-100px) scale(0.5); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Initialize details arrow animation
+        document.querySelectorAll('details').forEach(details => {
+            const summary = details.querySelector('summary');
+            const arrow = summary.querySelector('i');
+
+            details.addEventListener('toggle', function() {
+                if (this.open) {
+                    arrow.style.transform = 'rotate(90deg)';
+                } else {
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            });
+        });
+
+        // Style filter buttons
+        const style = document.createElement('style');
+        style.textContent = `
+            .filter-btn {
+                background-color: var(--color-surface);
+                border: 1px solid var(--color-border);
+                color: var(--color-text-light);
+                padding: var(--spacing-sm) var(--spacing-md);
+                border-radius: var(--radius-md);
+                cursor: pointer;
+                transition: all var(--transition-fast);
+            }
+
+            .filter-btn:hover {
+                border-color: var(--color-primary);
+                color: var(--color-primary);
+            }
+
+            .filter-btn.active {
+                background-color: var(--color-primary);
+                border-color: var(--color-primary);
+                color: white;
+            }
+
+            .filter-btn.active:hover {
+                background-color: var(--color-primary-dark);
+            }
+
+            details summary {
+                list-style: none;
+            }
+
+            details summary::-webkit-details-marker {
+                display: none;
+            }
+
+            #tutorial-search:focus {
+                outline: none;
+                border-color: var(--color-primary);
+                box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+            }
+        `;
+        document.head.appendChild(style);
+    });
+</script>
+
+{{end}}

@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -146,6 +147,14 @@ func (s *Server) setupRoutes() {
 			r.Get("/pipeline/{id}/metrics", s.handlePipelineMetrics)
 		})
 
+		// Dataset endpoints
+		r.Route("/datasets", func(r chi.Router) {
+			r.Get("/", s.handleListDatasets)
+			r.Post("/upload", s.handleUploadDataset)
+			r.Get("/{id}", s.handleGetDataset)
+			r.Delete("/{id}", s.handleDeleteDataset)
+		})
+
 		// System endpoints
 		r.Get("/system/info", s.handleSystemInfo)
 		r.Get("/system/stats", s.handleSystemStats)
@@ -217,6 +226,46 @@ type PipelineCreateResponse struct {
 	PipelineID string    `json:"pipeline_id"`
 	Message    string    `json:"message"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+// DatasetInfo represents information about a dataset
+type DatasetInfo struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Type        string    `json:"type"`        // "builtin", "uploaded"
+	Size        int       `json:"size"`        // Number of observations
+	Features    int       `json:"features"`    // Number of features
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+}
+
+// ListDatasetsResponse represents a response for listing datasets
+type ListDatasetsResponse struct {
+	Datasets []DatasetInfo `json:"datasets"`
+	Count    int           `json:"count"`
+	Timestamp time.Time    `json:"timestamp"`
+}
+
+// GetDatasetResponse represents a response for getting a dataset
+type GetDatasetResponse struct {
+	Dataset   DatasetInfo               `json:"dataset"`
+	Data      *timeseries.CSVTimeSeriesData `json:"data,omitempty"`
+	Timestamp time.Time                 `json:"timestamp"`
+}
+
+// UploadDatasetRequest represents a request to upload a dataset
+type UploadDatasetRequest struct {
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	// File content will be in multipart/form-data
+}
+
+// UploadDatasetResponse represents a response to dataset upload
+type UploadDatasetResponse struct {
+	DatasetID string    `json:"dataset_id"`
+	Message   string    `json:"message"`
+	Size      int       `json:"size"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // ErrorResponse represents an error response
@@ -801,6 +850,102 @@ func (s *Server) handlePipelineMetrics(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sendJSON(w, http.StatusOK, response)
+}
+
+// handleListDatasets returns information about available datasets
+func (s *Server) handleListDatasets(w http.ResponseWriter, r *http.Request) {
+	// Built-in datasets
+	builtinDatasets := []DatasetInfo{
+		{
+			ID:          "airpassengers",
+			Name:        "AirPassengers",
+			Description: "Monthly airline passenger numbers 1949-1960",
+			Type:        "builtin",
+			Size:        144,
+			Features:    1,
+			CreatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			ID:          "sp500",
+			Name:        "S&P 500 Index",
+			Description: "Synthetic daily S&P 500 prices 2000-2025 with crashes",
+			Type:        "builtin",
+			Size:        6525,
+			Features:    1,
+			CreatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		{
+			ID:          "sample",
+			Name:        "Sample Time Series",
+			Description: "Generated sample data with trend and seasonality",
+			Type:        "builtin",
+			Size:        365,
+			Features:    1,
+			CreatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+	}
+
+	response := ListDatasetsResponse{
+		Datasets:  builtinDatasets,
+		Count:     len(builtinDatasets),
+		Timestamp: time.Now(),
+	}
+
+	sendJSON(w, http.StatusOK, response)
+}
+
+// handleGetDataset returns dataset data
+func (s *Server) handleGetDataset(w http.ResponseWriter, r *http.Request) {
+	datasetID := chi.URLParam(r, "id")
+	if datasetID == "" {
+		sendError(w, http.StatusBadRequest, fmt.Errorf("dataset_id is required"), "Dataset ID is required")
+		return
+	}
+
+	var data *timeseries.CSVTimeSeriesData
+	switch datasetID {
+	case "airpassengers":
+		data = timeseries.AirPassengersDataset()
+	case "sp500":
+		data = timeseries.SP500Dataset()
+	case "sample":
+		data = timeseries.CreateSampleData()
+	default:
+		sendError(w, http.StatusNotFound, fmt.Errorf("dataset not found"), "Dataset not found")
+		return
+	}
+
+	response := GetDatasetResponse{
+		Dataset: DatasetInfo{
+			ID:          datasetID,
+			Name:        strings.Title(strings.ReplaceAll(datasetID, "_", " ")),
+			Description: "Built-in dataset",
+			Type:        "builtin",
+			Size:        len(data.Values),
+			Features:    1,
+			CreatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+			UpdatedAt:   time.Date(2024, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		Data:      data,
+		Timestamp: time.Now(),
+	}
+
+	sendJSON(w, http.StatusOK, response)
+}
+
+// handleUploadDataset handles CSV file uploads
+func (s *Server) handleUploadDataset(w http.ResponseWriter, r *http.Request) {
+	// For now, return not implemented
+	sendError(w, http.StatusNotImplemented, fmt.Errorf("not implemented"), "Dataset upload not yet implemented")
+}
+
+// handleDeleteDataset handles dataset deletion
+func (s *Server) handleDeleteDataset(w http.ResponseWriter, r *http.Request) {
+	// For now, return not implemented (built-in datasets cannot be deleted)
+	sendError(w, http.StatusNotImplemented, fmt.Errorf("not implemented"), "Built-in datasets cannot be deleted")
 }
 
 // handleSystemInfo returns system information

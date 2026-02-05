@@ -1,0 +1,820 @@
+
+{{define "content"}}
+<div class="content-header">
+    <h1 class="content-title">
+        {{if eq .Data.type "xor"}}XOR Problem Visualizer{{else if eq .Data.type "timeseries"}}Time Series Visualizer{{else if eq .Data.type "activations"}}Activation Function Explorer{{else}}Neural Network Visualizer{{end}}
+    </h1>
+    <p class="content-subtitle">
+        {{if eq .Data.type "xor"}}Interactive exploration of the classic XOR problem{{else if eq .Data.type "timeseries"}}Visualize time series data and forecasts{{else if eq .Data.type "activations"}}Explore different activation functions{{else}}Visualize neural network architecture and training{{end}}
+    </p>
+</div>
+
+<div class="main-content">
+    <!-- Visualization Selector -->
+    <div class="card" style="margin-bottom: var(--spacing-xl);">
+        <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-md); color: var(--color-text);">
+            <i class="fas fa-project-diagram"></i> Select Visualization Type
+        </h3>
+        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-md);">
+            <a href="/visualize/network" class="btn {{if eq .Data.type "network"}}btn-primary{{else}}btn-outline{{end}}">
+                <i class="fas fa-network-wired"></i> Network Architecture
+            </a>
+            <a href="/visualize/xor" class="btn {{if eq .Data.type "xor"}}btn-primary{{else}}btn-outline{{end}}">
+                <i class="fas fa-puzzle-piece"></i> XOR Problem
+            </a>
+            <a href="/visualize/timeseries" class="btn {{if eq .Data.type "timeseries"}}btn-primary{{else}}btn-outline{{end}}">
+                <i class="fas fa-chart-line"></i> Time Series
+            </a>
+            <a href="/visualize/activations" class="btn {{if eq .Data.type "activations"}}btn-primary{{else}}btn-outline{{end}}">
+                <i class="fas fa-wave-square"></i> Activation Functions
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Visualization Area -->
+    <div class="card" style="margin-bottom: var(--spacing-xl); min-height: 500px;">
+        <div style="display: grid; grid-template-columns: 300px 1fr; gap: var(--spacing-xl);">
+            <!-- Controls Panel -->
+            <div>
+                {{if eq .Data.type "xor"}}
+                <!-- XOR Controls -->
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-lg); color: var(--color-primary);">
+                    <i class="fas fa-sliders-h"></i> XOR Controls
+                </h3>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Network Architecture</label>
+                    <select id="xorArchitecture" class="control-select">
+                        <option value="2-4-1">2-4-1 (Standard)</option>
+                        <option value="2-3-1">2-3-1 (Minimal)</option>
+                        <option value="2-8-4-1">2-8-4-1 (Deep)</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Learning Rate</label>
+                    <input type="range" id="xorLearningRate" min="0.01" max="1.0" step="0.01" value="0.5" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-light);">
+                        <span>0.01</span>
+                        <span id="xorLearningRateValue">0.50</span>
+                        <span>1.00</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Epochs</label>
+                    <input type="range" id="xorEpochs" min="100" max="5000" step="100" value="1000" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-light);">
+                        <span>100</span>
+                        <span id="xorEpochsValue">1000</span>
+                        <span>5000</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-xl);">
+                    <button id="xorTrainBtn" class="btn btn-primary" style="flex-grow: 1;">
+                        <i class="fas fa-play"></i> Train Network
+                    </button>
+                    <button id="xorResetBtn" class="btn btn-outline">
+                        <i class="fas fa-redo"></i>
+                    </button>
+                </div>
+
+                <div class="card" style="background-color: rgba(16, 185, 129, 0.05); padding: var(--spacing-md);">
+                    <h4 style="font-size: 0.875rem; margin-bottom: var(--spacing-sm); color: var(--color-secondary);">
+                        <i class="fas fa-info-circle"></i> XOR Truth Table
+                    </h4>
+                    <table style="width: 100%; font-size: 0.75rem;">
+                        <tr>
+                            <th>Input 1</th>
+                            <th>Input 2</th>
+                            <th>Expected</th>
+                            <th>Predicted</th>
+                        </tr>
+                        <tr>
+                            <td>0</td>
+                            <td>0</td>
+                            <td>0</td>
+                            <td id="xorResult00">-</td>
+                        </tr>
+                        <tr>
+                            <td>0</td>
+                            <td>1</td>
+                            <td>1</td>
+                            <td id="xorResult01">-</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>0</td>
+                            <td>1</td>
+                            <td id="xorResult10">-</td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>1</td>
+                            <td>0</td>
+                            <td id="xorResult11">-</td>
+                        </tr>
+                    </table>
+                </div>
+
+                {{else if eq .Data.type "timeseries"}}
+                <!-- Time Series Controls -->
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-lg); color: var(--color-primary);">
+                    <i class="fas fa-sliders-h"></i> Time Series Controls
+                </h3>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Dataset</label>
+                    <select id="tsDataset" class="control-select">
+                        <option value="airpassengers">AirPassengers</option>
+                        <option value="sp500">S&amp;P 500 Index</option>
+                        <option value="energy">Energy Demand</option>
+                        <option value="sales">Daily Sales</option>
+                        <option value="stocks">Stock Prices</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Forecast Method</label>
+                    <select id="tsMethod" class="control-select">
+                        <option value="neural">Neural Network</option>
+                        <option value="seasonal_naive">Seasonal Naïve</option>
+                        <option value="moving_average">Moving Average</option>
+                        <option value="exponential">Exponential Smoothing</option>
+                        <option value="holt_winters">Holt-Winters</option>
+                    </select>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Forecast Horizon</label>
+                    <input type="range" id="tsHorizon" min="1" max="24" step="1" value="6" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-light);">
+                        <span>1</span>
+                        <span id="tsHorizonValue">6 steps</span>
+                        <span>24</span>
+                    </div>
+                </div>
+
+                <button id="tsForecastBtn" class="btn btn-primary" style="width: 100%; margin-bottom: var(--spacing-lg);">
+                    <i class="fas fa-chart-line"></i> Generate Forecast
+                </button>
+
+                <div class="card" style="background-color: rgba(59, 130, 246, 0.05); padding: var(--spacing-md);">
+                    <h4 style="font-size: 0.875rem; margin-bottom: var(--spacing-sm); color: #3b82f6;">
+                        <i class="fas fa-chart-bar"></i> Forecast Metrics
+                    </h4>
+                    <div id="tsMetrics" style="font-size: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>RMSE:</span>
+                            <span>-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>MAE:</span>
+                            <span>-</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span>MAPE:</span>
+                            <span>-</span>
+                        </div>
+                    </div>
+                </div>
+
+                {{else if eq .Data.type "activations"}}
+                <!-- Activation Function Controls -->
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-lg); color: var(--color-primary);">
+                    <i class="fas fa-sliders-h"></i> Activation Functions
+                </h3>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Function Type</label>
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <input type="radio" name="activation" value="sigmoid" checked>
+                            <span>Sigmoid</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <input type="radio" name="activation" value="tanh">
+                            <span>Tanh</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <input type="radio" name="activation" value="relu">
+                            <span>ReLU</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <input type="radio" name="activation" value="leaky_relu">
+                            <span>Leaky ReLU</span>
+                        </label>
+                        <label style="display: flex; align-items: center; gap: var(--spacing-sm);">
+                            <input type="radio" name="activation" value="softmax">
+                            <span>Softmax</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Input Range</label>
+                    <input type="range" id="actRange" min="-10" max="10" step="0.1" value="5" style="width: 100%;">
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--color-text-light);">
+                        <span>-10</span>
+                        <span id="actRangeValue">±5.0</span>
+                        <span>10</span>
+                    </div>
+                </div>
+
+                <div class="card" style="background-color: rgba(245, 158, 11, 0.05); padding: var(--spacing-md);">
+                    <h4 style="font-size: 0.875rem; margin-bottom: var(--spacing-sm); color: var(--color-accent);">
+                        <i class="fas fa-info-circle"></i> Function Properties
+                    </h4>
+                    <div id="actProperties" style="font-size: 0.75rem;">
+                        <div>Range: (0, 1)</div>
+                        <div>Derivative: f(x)(1-f(x))</div>
+                        <div>Smooth: Yes</div>
+                        <div>Monotonic: Yes</div>
+                    </div>
+                </div>
+
+                {{else}}
+                <!-- Network Architecture Controls -->
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-lg); color: var(--color-primary);">
+                    <i class="fas fa-sliders-h"></i> Network Controls
+                </h3>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Layers</label>
+                    <div id="layerControls">
+                        <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                            <input type="number" min="1" max="100" value="2" class="layer-input" placeholder="Neurons">
+                            <button class="btn btn-outline" style="padding: var(--spacing-xs);" disabled>
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                            <input type="number" min="1" max="100" value="4" class="layer-input" placeholder="Neurons">
+                            <button class="btn btn-outline" style="padding: var(--spacing-xs);">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div style="display: flex; gap: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                            <input type="number" min="1" max="100" value="1" class="layer-input" placeholder="Neurons">
+                            <button class="btn btn-outline" style="padding: var(--spacing-xs);">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button id="addLayerBtn" class="btn btn-outline" style="width: 100%; margin-top: var(--spacing-sm);">
+                        <i class="fas fa-plus"></i> Add Layer
+                    </button>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-size: 0.875rem; color: var(--color-text);">Activation Function</label>
+                    <select id="networkActivation" class="control-select">
+                        <option value="sigmoid">Sigmoid</option>
+                        <option value="tanh">Tanh</option>
+                        <option value="relu" selected>ReLU</option>
+                        <option value="leaky_relu">Leaky ReLU</option>
+                    </select>
+                </div>
+
+                <button id="networkVisualizeBtn" class="btn btn-primary" style="width: 100%;">
+                    <i class="fas fa-eye"></i> Visualize Network
+                </button>
+
+                {{end}}
+            </div>
+
+            <!-- Visualization Canvas -->
+            <div>
+                <div style="background-color: var(--color-background); border-radius: var(--radius-lg); padding: var(--spacing-lg); height: 100%; display: flex; align-items: center; justify-content: center;">
+                    {{if eq .Data.type "xor"}}
+                    <div id="xorVisualization" style="width: 100%; text-align: center;">
+                        <div style="font-size: 3rem; color: var(--color-border); margin-bottom: var(--spacing-md);">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <p style="color: var(--color-text-light);">XOR Problem Visualizer</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-md);">
+                            Click "Train Network" to start the visualization
+                        </p>
+                        <div id="xorTrainingChart" style="height: 200px; margin-top: var(--spacing-lg); display: none;"></div>
+                    </div>
+                    {{else if eq .Data.type "timeseries"}}
+                    <div id="tsVisualization" style="width: 100%; text-align: center;">
+                        <div style="font-size: 3rem; color: var(--color-border); margin-bottom: var(--spacing-md);">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                        <p style="color: var(--color-text-light);">Time Series Visualizer</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-md);">
+                            Select dataset and click "Generate Forecast"
+                        </p>
+                        <div id="tsChart" style="height: 300px; margin-top: var(--spacing-lg); display: none;"></div>
+                    </div>
+                    {{else if eq .Data.type "activations"}}
+                    <div id="actVisualization" style="width: 100%; text-align: center;">
+                        <div style="font-size: 3rem; color: var(--color-border); margin-bottom: var(--spacing-md);">
+                            <i class="fas fa-wave-square"></i>
+                        </div>
+                        <p style="color: var(--color-text-light);">Activation Function Explorer</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-md);">
+                            Select an activation function to visualize
+                        </p>
+                        <div id="actChart" style="height: 300px; margin-top: var(--spacing-lg);"></div>
+                    </div>
+                    {{else}}
+                    <div id="networkVisualization" style="width: 100%; text-align: center;">
+                        <div style="font-size: 3rem; color: var(--color-border); margin-bottom: var(--spacing-md);">
+                            <i class="fas fa-project-diagram"></i>
+                        </div>
+                        <p style="color: var(--color-text-light);">Neural Network Visualizer</p>
+                        <p style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-md);">
+                            Configure layers and click "Visualize Network"
+                        </p>
+                        <div id="networkCanvas" style="height: 300px; margin-top: var(--spacing-lg);"></div>
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Educational Content -->
+    <div class="card">
+        <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary);">
+            <i class="fas fa-graduation-cap"></i> Educational Insights
+        </h3>
+
+        {{if eq .Data.type "xor"}}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl);">
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">The XOR Problem</h4>
+                <p style="color: var(--color-text-light); line-height: 1.6;">
+                    The XOR (exclusive OR) problem is the "Hello World" of neural networks. A single-layer perceptron cannot solve XOR because it's not linearly separable. This demonstrates the need for hidden layers in neural networks.
+                </p>
+                <ul style="color: var(--color-text-light); margin-top: var(--spacing-md); padding-left: var(--spacing-lg);">
+                    <li>Requires at least one hidden layer</li>
+                    <li>Demonstrates non-linear separability</li>
+                    <li>Tests network's ability to learn non-linear patterns</li>
+                    <li>Classic benchmark for neural network architectures</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Learning Insights</h4>
+                <p style="color: var(--color-text-light); line-height: 1.6;">
+                    Watch how different architectures affect learning:
+                </p>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-md); margin-top: var(--spacing-md);">
+                    <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-secondary);">2-4-1</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light);">Standard architecture, usually works well</div>
+                    </div>
+                    <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-primary);">2-3-1</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light);">Minimal, may struggle to converge</div>
+                    </div>
+                    <div style="background-color: rgba(245, 158, 11, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-accent);">2-8-4-1</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light);">Deep, may overfit but learns quickly</div>
+                    </div>
+                    <div style="background-color: rgba(59, 130, 246, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: #3b82f6;">Learning Rate</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light);">Too high: oscillates, Too low: slow</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{else if eq .Data.type "timeseries"}}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl);">
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Time Series Forecasting</h4>
+                <p style="color: var(--color-text-light); line-height: 1.6;">
+                    Time series forecasting involves predicting future values based on historical patterns. Key components include trend, seasonality, and noise. Neural networks can capture complex patterns but statistical methods often provide strong baselines.
+                </p>
+                <ul style="color: var(--color-text-light); margin-top: var(--spacing-md); padding-left: var(--spacing-lg);">
+                    <li><strong>Trend:</strong> Long-term direction</li>
+                    <li><strong>Seasonality:</strong> Regular repeating patterns</li>
+                    <li><strong>Cyclical:</strong> Irregular fluctuations</li>
+                    <li><strong>Noise:</strong> Random variation</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Forecasting Methods</h4>
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                    <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-weight: 600; color: var(--color-secondary);">Neural Network</div>
+                            <span style="font-size: 0.75rem; background-color: var(--color-secondary); color: white; padding: 2px 8px; border-radius: 10px;">Complex</span>
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">Captures complex patterns, requires more data</div>
+                    </div>
+                    <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-weight: 600; color: var(--color-primary);">Seasonal Naïve</div>
+                            <span style="font-size: 0.75rem; background-color: var(--color-primary); color: white; padding: 2px 8px; border-radius: 10px;">Simple</span>
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">Uses value from same season last period</div>
+                    </div>
+                    <div style="background-color: rgba(245, 158, 11, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="font-weight: 600; color: var(--color-accent);">Exponential Smoothing</div>
+                            <span style="font-size: 0.75rem; background-color: var(--color-accent); color: white; padding: 2px 8px; border-radius: 10px;">Adaptive</span>
+                        </div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">Weights recent observations more heavily</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {{else if eq .Data.type "activations"}}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl);">
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Activation Functions</h4>
+                <p style="color: var(--color-text-light); line-height: 1.6;">
+                    Activation functions determine the output of a neural network node. They introduce non-linearity, allowing networks to learn complex patterns. Different functions have different properties suitable for various tasks.
+                </p>
+                <div style="margin-top: var(--spacing-md);">
+                    <h5 style="font-size: 1rem; margin-bottom: var(--spacing-sm); color: var(--color-text);">Key Properties:</h5>
+                    <ul style="color: var(--color-text-light); padding-left: var(--spacing-lg);">
+                        <li><strong>Range:</strong> Output value bounds</li>
+                        <li><strong>Differentiability:</strong> Needed for backpropagation</li>
+                        <li><strong>Monotonicity:</strong> Preserves ordering</li>
+                        <li><strong>Saturation:</strong> Gradient vanishing issues</li>
+                    </ul>
+                </div>
+            </div>
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Function Comparison</h4>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; font-size: 0.875rem; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: var(--color-background);">
+                                <th style="padding: var(--spacing-sm); text-align: left;">Function</th>
+                                <th style="padding: var(--spacing-sm); text-align: left;">Range</th>
+                                <th style="padding: var(--spacing-sm); text-align: left;">Use Case</th>
+                                <th style="padding: var(--spacing-sm); text-align: left;">Pros</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Sigmoid</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">(0, 1)</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Binary classification</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Smooth, interpretable</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Tanh</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">(-1, 1)</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Hidden layers</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Zero-centered</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">ReLU</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">[0, ∞)</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Deep networks</td>
+                                <td style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-border);">Sparsity, fast</td>
+                            </tr>
+                            <tr>
+                                <td style="padding: var(--spacing-sm);">Leaky ReLU</td>
+                                <td style="padding: var(--spacing-sm);">(-∞, ∞)</td>
+                                <td style="padding: var(--spacing-sm);">Deep networks</td>
+                                <td style="padding: var(--spacing-sm);">No dead neurons</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        {{else}}
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-xl);">
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Neural Network Architecture</h4>
+                <p style="color: var(--color-text-light); line-height: 1.6;">
+                    Neural networks consist of layers of interconnected neurons. Each layer transforms its input through weights, biases, and activation functions. The architecture (number of layers and neurons) determines the network's capacity to learn complex patterns.
+                </p>
+                <ul style="color: var(--color-text-light); margin-top: var(--spacing-md); padding-left: var(--spacing-lg);">
+                    <li><strong>Input Layer:</strong> Receives features</li>
+                    <li><strong>Hidden Layers:</strong> Learn representations</li>
+                    <li><strong>Output Layer:</strong> Produces predictions</li>
+                    <li><strong>Weights:</strong> Connection strengths</li>
+                    <li><strong>Biases:</strong> Offset parameters</li>
+                </ul>
+            </div>
+            <div>
+                <h4 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">Design Principles</h4>
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-md);">
+                    <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-secondary);">Depth vs Width</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">
+                            Deep networks (more layers) learn hierarchical features. Wide networks (more neurons per layer) learn more features per layer.
+                        </div>
+                    </div>
+                    <div style="background-color: rgba(99, 102, 241, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-primary);">Overfitting Risk</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">
+                            Larger networks can memorize training data. Use regularization, dropout, or early stopping to prevent overfitting.
+                        </div>
+                    </div>
+                    <div style="background-color: rgba(245, 158, 11, 0.1); padding: var(--spacing-md); border-radius: var(--radius-md);">
+                        <div style="font-weight: 600; color: var(--color-accent);">Activation Choice</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-xs);">
+                            ReLU for hidden layers (fast, avoids saturation). Sigmoid/Tanh for specific cases. Softmax for multi-class output.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+
+<style>
+    .control-select {
+        width: 100%;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background-color: var(--color-surface);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+        font-size: 0.875rem;
+    }
+
+    .control-select:focus {
+        outline: none;
+        border-color: var(--color-primary);
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+    }
+
+    .layer-input {
+        flex-grow: 1;
+        padding: var(--spacing-sm) var(--spacing-md);
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-md);
+        background-color: var(--color-surface);
+        color: var(--color-text);
+        font-family: var(--font-primary);
+    }
+
+    input[type="range"] {
+        -webkit-appearance: none;
+        height: 6px;
+        background: var(--color-border);
+        border-radius: 3px;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        width: 20px;
+        height: 20px;
+        background: var(--color-primary);
+        border-radius: 50%;
+        cursor: pointer;
+    }
+
+    input[type="radio"] {
+        margin: 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th, td {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        text-align: left;
+        border-bottom: 1px solid var(--color-border);
+    }
+
+    th {
+        font-weight: 600;
+        color: var(--color-text);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+    }
+
+    td {
+        font-size: 0.875rem;
+        color: var(--color-text-light);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        {{if eq .Data.type "xor"}}
+        // XOR Visualizer functionality
+        const xorLearningRate = document.getElementById('xorLearningRate');
+        const xorLearningRateValue = document.getElementById('xorLearningRateValue');
+        const xorEpochs = document.getElementById('xorEpochs');
+        const xorEpochsValue = document.getElementById('xorEpochsValue');
+        const xorTrainBtn = document.getElementById('xorTrainBtn');
+        const xorResetBtn = document.getElementById('xorResetBtn');
+
+        xorLearningRate.addEventListener('input', function() {
+            xorLearningRateValue.textContent = parseFloat(this.value).toFixed(2);
+        });
+
+        xorEpochs.addEventListener('input', function() {
+            xorEpochsValue.textContent = this.value;
+        });
+
+        xorTrainBtn.addEventListener('click', async function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Training...';
+            this.disabled = true;
+
+            // Simulate training (in real implementation, call API)
+            await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Update results
+            document.getElementById('xorResult00').textContent = '0.12';
+            document.getElementById('xorResult01').textContent = '0.89';
+            document.getElementById('xorResult10').textContent = '0.91';
+            document.getElementById('xorResult11').textContent = '0.08';
+
+            // Show training chart
+            document.getElementById('xorTrainingChart').style.display = 'block';
+
+            this.innerHTML = '<i class="fas fa-check"></i> Training Complete';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-play"></i> Train Network';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        xorResetBtn.addEventListener('click', function() {
+            document.getElementById('xorResult00').textContent = '-';
+            document.getElementById('xorResult01').textContent = '-';
+            document.getElementById('xorResult10').textContent = '-';
+            document.getElementById('xorResult11').textContent = '-';
+            document.getElementById('xorTrainingChart').style.display = 'none';
+        });
+
+        {{else if eq .Data.type "timeseries"}}
+        // Time Series Visualizer functionality
+        const tsHorizon = document.getElementById('tsHorizon');
+        const tsHorizonValue = document.getElementById('tsHorizonValue');
+        const tsForecastBtn = document.getElementById('tsForecastBtn');
+
+        tsHorizon.addEventListener('input', function() {
+            tsHorizonValue.textContent = this.value + ' steps';
+        });
+
+        tsForecastBtn.addEventListener('click', async function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            this.disabled = true;
+
+            // Simulate forecast generation
+            await new Promise(resolve => setTimeout(resolve, 1500));
+
+            // Update metrics
+            const metrics = document.getElementById('tsMetrics');
+            metrics.innerHTML = `
+                <div style="display: flex; justify-content: space-between;">
+                    <span>RMSE:</span>
+                    <span>24.3</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>MAE:</span>
+                    <span>18.7</span>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <span>MAPE:</span>
+                    <span>12.4%</span>
+                </div>
+            `;
+
+            // Show chart
+            document.getElementById('tsChart').style.display = 'block';
+
+            this.innerHTML = '<i class="fas fa-check"></i> Forecast Generated';
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-chart-line"></i> Generate Forecast';
+                this.disabled = false;
+            }, 2000);
+        });
+
+        {{else if eq .Data.type "activations"}}
+        // Activation Function Visualizer functionality
+        const actRange = document.getElementById('actRange');
+        const actRangeValue = document.getElementById('actRangeValue');
+        const activationRadios = document.querySelectorAll('input[name="activation"]');
+
+        actRange.addEventListener('input', function() {
+            const value = parseFloat(this.value);
+            actRangeValue.textContent = '±' + Math.abs(value).toFixed(1);
+            updateActivationPlot();
+        });
+
+        activationRadios.forEach(radio => {
+            radio.addEventListener('change', updateActivationPlot);
+        });
+
+        function updateActivationPlot() {
+            const selectedActivation = document.querySelector('input[name="activation"]:checked').value;
+            const range = parseFloat(actRange.value);
+
+            // Update properties
+            const props = document.getElementById('actProperties');
+            switch(selectedActivation) {
+                case 'sigmoid':
+                    props.innerHTML = `
+                        <div>Range: (0, 1)</div>
+                        <div>Derivative: f(x)(1-f(x))</div>
+                        <div>Smooth: Yes</div>
+                        <div>Monotonic: Yes</div>
+                    `;
+                    break;
+                case 'tanh':
+                    props.innerHTML = `
+                        <div>Range: (-1, 1)</div>
+                        <div>Derivative: 1 - f(x)²</div>
+                        <div>Smooth: Yes</div>
+                        <div>Monotonic: Yes</div>
+                    `;
+                    break;
+                case 'relu':
+                    props.innerHTML = `
+                        <div>Range: [0, ∞)</div>
+                        <div>Derivative: 0 or 1</div>
+                        <div>Smooth: No (at 0)</div>
+                        <div>Monotonic: Yes</div>
+                    `;
+                    break;
+                case 'leaky_relu':
+                    props.innerHTML = `
+                        <div>Range: (-∞, ∞)</div>
+                        <div>Derivative: 0.01 or 1</div>
+                        <div>Smooth: No (at 0)</div>
+                        <div>Monotonic: Yes</div>
+                    `;
+                    break;
+                case 'softmax':
+                    props.innerHTML = `
+                        <div>Range: (0, 1)</div>
+                        <div>Multi-class only</div>
+                        <div>Sum to 1: Yes</div>
+                        <div>Used in output layer</div>
+                    `;
+                    break;
+            }
+        }
+
+        // Initial plot
+        updateActivationPlot();
+
+        {{else}}
+        // Network Architecture Visualizer functionality
+        const addLayerBtn = document.getElementById('addLayerBtn');
+        const layerControls = document.getElementById('layerControls');
+        const networkVisualizeBtn = document.getElementById('networkVisualizeBtn');
+
+        addLayerBtn.addEventListener('click', function() {
+            const layerDiv = document.createElement('div');
+            layerDiv.style.display = 'flex';
+            layerDiv.style.gap = 'var(--spacing-sm)';
+            layerDiv.style.marginBottom = 'var(--spacing-sm)';
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.min = '1';
+            input.max = '100';
+            input.value = '8';
+            input.placeholder = 'Neurons';
+            input.className = 'layer-input';
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'btn btn-outline';
+            removeBtn.style.padding = 'var(--spacing-xs)';
+            removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+            removeBtn.addEventListener('click', function() {
+                layerDiv.remove();
+            });
+
+            layerDiv.appendChild(input);
+            layerDiv.appendChild(removeBtn);
+            layerControls.appendChild(layerDiv);
+        });
+
+        // Add remove functionality to existing buttons
+        document.querySelectorAll('#layerControls .btn-outline').forEach((btn, index) => {
+            if (index > 0) { // Don't remove first layer
+                btn.addEventListener('click', function() {
+                    this.parentElement.remove();
+                });
+            }
+        });
+
+        networkVisualizeBtn.addEventListener('click', function() {
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Visualizing...';
+
+            // Simulate visualization
+            setTimeout(() => {
+                this.innerHTML = '<i class="fas fa-eye"></i> Visualize Network';
+                // In real implementation, draw network here
+            }, 1000);
+        });
+        {{end}}
+    });
+</script>
+{{end}}

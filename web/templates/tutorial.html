@@ -1,0 +1,362 @@
+{{define "content"}}
+<div class="content-header">
+    <h1 class="content-title">{{.Tutorial.Title}}</h1>
+    <p class="content-subtitle">Chapter {{.Tutorial.Chapter}} • {{.Tutorial.Estimated}} •
+        <span class="badge {{if eq .Tutorial.Difficulty "beginner"}}badge-beginner{{else if eq .Tutorial.Difficulty "intermediate"}}badge-intermediate{{else}}badge-advanced{{end}}">
+            {{.Tutorial.Difficulty}}
+        </span>
+        {{if .Tutorial.HasVisual}}<i class="fas fa-eye" title="Has visualization"></i>{{end}}
+        {{if .Tutorial.HasCode}}<i class="fas fa-code" title="Has code examples"></i>{{end}}
+    </p>
+</div>
+
+<div class="alert alert-info">
+    <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+        <i class="fas fa-info-circle" style="font-size: 1.5rem;"></i>
+        <div>
+            <strong>About this tutorial:</strong> {{.Tutorial.Description}}
+        </div>
+    </div>
+</div>
+
+<div class="main-content">
+    <!-- Two-column layout for tutorial content -->
+    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: var(--spacing-xl);">
+        <!-- Left column: Main content -->
+        <div>
+            <!-- Learning Objectives -->
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary); display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-bullseye"></i> Learning Objectives
+                </h3>
+                <ul style="list-style: none; padding: 0;">
+                    {{range .Tutorial.Objectives}}
+                    <li style="padding: var(--spacing-sm) 0; border-bottom: 1px solid var(--color-border); display: flex; align-items: start; gap: var(--spacing-sm);">
+                        <i class="fas fa-check-circle" style="color: var(--color-secondary); margin-top: 2px;"></i>
+                        <span>{{.}}</span>
+                    </li>
+                    {{end}}
+                </ul>
+            </div>
+
+            <!-- Topics Covered -->
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary); display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-list"></i> Topics Covered
+                </h3>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                    {{range .Tutorial.Topics}}
+                    <span style="background-color: rgba(99, 102, 241, 0.1); color: var(--color-primary); padding: var(--spacing-sm) var(--spacing-md); border-radius: var(--radius-md); font-size: 0.875rem;">
+                        {{.}}
+                    </span>
+                    {{end}}
+                </div>
+            </div>
+
+            <!-- Hands-on Exercises -->
+            {{if .Tutorial.Exercises}}
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary); display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-laptop-code"></i> Hands-on Exercises
+                </h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: var(--spacing-md);">
+                    {{range .Tutorial.Exercises}}
+                    <div style="background-color: var(--color-background); padding: var(--spacing-md); border-radius: var(--radius-md); border-left: 4px solid var(--color-accent);">
+                        <i class="fas fa-play-circle" style="color: var(--color-accent); margin-right: var(--spacing-sm);"></i>
+                        {{.}}
+                    </div>
+                    {{end}}
+                </div>
+            </div>
+            {{end}}
+
+            <!-- Code Example -->
+            {{if .Tutorial.HasCode}}
+            <div class="card" style="margin-bottom: var(--spacing-xl);">
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary); display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-code"></i> Code Example
+                </h3>
+                <div class="code-block">
+                    <pre><code>// Example: {{.Tutorial.Title}}
+package main
+
+import (
+    "fmt"
+    "goneurotic/pkg/neural"
+)
+
+func main() {
+    // Create a neural network
+    network := neural.NewNetwork([]int{2, 4, 1})
+    network.SetActivation("sigmoid")
+    network.SetLearningRate(0.5)
+
+    // Training data
+    inputs := [][]float64{{0, 0}, {0, 1}, {1, 0}, {1, 1}}
+    targets := [][]float64{{0}, {1}, {1}, {0}}
+
+    // Train the network
+    for epoch := 0; epoch < 1000; epoch++ {
+        loss := network.Train(inputs, targets)
+        if epoch%100 == 0 {
+            fmt.Printf("Epoch %d: Loss = %.4f\n", epoch, loss)
+        }
+    }
+
+    fmt.Println("Training complete!")
+}</code></pre>
+                </div>
+                <div style="margin-top: var(--spacing-md); display: flex; gap: var(--spacing-sm);">
+                    <button class="btn btn-outline" onclick="copyCode()">
+                        <i class="fas fa-copy"></i> Copy Code
+                    </button>
+                    <button class="btn btn-outline" onclick="runCode()">
+                        <i class="fas fa-play"></i> Run Example
+                    </button>
+                </div>
+            </div>
+            {{end}}
+
+            <!-- Interactive Demo -->
+            {{if .Tutorial.HasVisual}}
+            <div class="card" style="margin-bottom: var(--spacing-xl); background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);">
+                <h3 style="font-size: 1.25rem; margin-bottom: var(--spacing-lg); color: var(--color-primary); display: flex; align-items: center; gap: var(--spacing-sm);">
+                    <i class="fas fa-gamepad"></i> Interactive Demo
+                </h3>
+                <div style="text-align: center; padding: var(--spacing-xl);">
+                    <div style="font-size: 4rem; color: var(--color-primary); margin-bottom: var(--spacing-lg);">
+                        <i class="fas fa-cogs"></i>
+                    </div>
+                    <h4 style="margin-bottom: var(--spacing-md); color: var(--color-text);">Interactive Visualization</h4>
+                    <p style="color: var(--color-text-light); margin-bottom: var(--spacing-xl); max-width: 400px; margin-left: auto; margin-right: auto;">
+                        This tutorial includes an interactive {{if eq .Tutorial.ID "xor-problem"}}XOR problem solver{{else if eq .Tutorial.ID "intro-time-series"}}time series analyzer{{else}}neural network visualizer{{end}}.
+                    </p>
+                    <a href="/visualize/{{if eq .Tutorial.ID "xor-problem"}}xor{{else if eq .Tutorial.ID "intro-time-series"}}timeseries{{else}}network{{end}}" class="btn btn-primary">
+                        <i class="fas fa-external-link-alt"></i> Open Visualizer
+                    </a>
+                </div>
+            </div>
+            {{end}}
+        </div>
+
+        <!-- Right column: Sidebar -->
+        <div>
+            <!-- Progress Tracking -->
+            <div class="card" style="margin-bottom: var(--spacing-lg);">
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">
+                    <i class="fas fa-chart-line"></i> Your Progress
+                </h3>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill" style="width: {{if .Tutorial.Completed}}100{{else}}0{{end}}%"></div>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.875rem; color: var(--color-text-light); margin-top: var(--spacing-sm);">
+                    <span id="progressText">{{if .Tutorial.Completed}}Completed{{else}}Not started{{end}}</span>
+                    <span id="progressPercent">{{if .Tutorial.Completed}}100{{else}}0{{end}}%</span>
+                </div>
+                <button id="markCompleteBtn" class="btn {{if .Tutorial.Completed}}btn-secondary{{else}}btn-primary{{end}}" style="width: 100%; margin-top: var(--spacing-md);">
+                    <i class="fas fa-{{if .Tutorial.Completed}}check-circle{{else}}check{{end}}"></i>
+                    {{if .Tutorial.Completed}}Completed{{else}}Mark as Complete{{end}}
+                </button>
+            </div>
+
+            <!-- Required Data -->
+            <div class="card" style="margin-bottom: var(--spacing-lg);">
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">
+                    <i class="fas fa-database"></i> Required Data
+                </h3>
+                <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-sm);">
+                    {{range .Tutorial.Data}}
+                    <span style="background-color: rgba(59, 130, 246, 0.1); color: #3b82f6; padding: var(--spacing-xs) var(--spacing-sm); border-radius: var(--radius-sm); font-size: 0.75rem;">
+                        {{.}}
+                    </span>
+                    {{end}}
+                </div>
+                <div style="margin-top: var(--spacing-md); font-size: 0.75rem; color: var(--color-text-light);">
+                    <i class="fas fa-info-circle"></i> All datasets are built-in
+                </div>
+            </div>
+
+            <!-- Quick Navigation -->
+            <div class="card" style="margin-bottom: var(--spacing-lg);">
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">
+                    <i class="fas fa-compass"></i> Quick Links
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-sm);">
+                    <a href="/tutorials" class="btn btn-outline" style="text-align: left;">
+                        <i class="fas fa-list"></i> All Tutorials
+                    </a>
+                    <a href="/tutorials/part/{{.Tutorial.Part}}" class="btn btn-outline" style="text-align: left;">
+                        <i class="fas fa-layer-group"></i> {{.Tutorial.Part}} Path
+                    </a>
+                    <a href="/syllabus" class="btn btn-outline" style="text-align: left;">
+                        <i class="fas fa-book"></i> Full Syllabus
+                    </a>
+                </div>
+            </div>
+
+            <!-- Estimated Time -->
+            <div class="card">
+                <h3 style="font-size: 1.125rem; margin-bottom: var(--spacing-md); color: var(--color-text);">
+                    <i class="fas fa-clock"></i> Time Commitment
+                </h3>
+                <div style="display: flex; align-items: center; gap: var(--spacing-md);">
+                    <div style="background-color: rgba(16, 185, 129, 0.1); padding: var(--spacing-md); border-radius: var(--radius-lg);">
+                        <i class="fas fa-hourglass-half" style="color: var(--color-secondary); font-size: 1.5rem;"></i>
+                    </div>
+                    <div>
+                        <div style="font-size: 1.5rem; font-weight: 700; color: var(--color-text);">{{.Tutorial.Estimated}}</div>
+                        <div style="font-size: 0.875rem; color: var(--color-text-light);">Estimated completion time</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div style="display: flex; justify-content: space-between; margin-top: var(--spacing-xl); padding-top: var(--spacing-xl); border-top: 1px solid var(--color-border);">
+        <a href="/tutorials" class="btn btn-outline">
+            <i class="fas fa-arrow-left"></i> Back to Tutorials
+        </a>
+        <div style="display: flex; gap: var(--spacing-md);">
+            <button class="btn btn-outline" id="prevBtn" disabled>
+                <i class="fas fa-chevron-left"></i> Previous
+            </button>
+            <button class="btn btn-primary" id="nextBtn">
+                Next Tutorial <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const markCompleteBtn = document.getElementById('markCompleteBtn');
+        const progressFill = document.getElementById('progressFill');
+        const progressText = document.getElementById('progressText');
+        const progressPercent = document.getElementById('progressPercent');
+
+        markCompleteBtn.addEventListener('click', function() {
+            const isCompleted = progressFill.style.width === '100%';
+
+            if (isCompleted) {
+                // Mark as incomplete
+                progressFill.style.width = '0%';
+                progressText.textContent = 'Not started';
+                progressPercent.textContent = '0%';
+                this.innerHTML = '<i class="fas fa-check"></i> Mark as Complete';
+                this.classList.remove('btn-secondary');
+                this.classList.add('btn-primary');
+            } else {
+                // Mark as complete
+                progressFill.style.width = '100%';
+                progressText.textContent = 'Completed';
+                progressPercent.textContent = '100%';
+                this.innerHTML = '<i class="fas fa-check-circle"></i> Completed';
+                this.classList.remove('btn-primary');
+                this.classList.add('btn-secondary');
+
+                // Show celebration
+                showCompletionCelebration();
+            }
+
+            // Send to server
+            fetch(`/progress/{{.Tutorial.ID}}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            }).catch(err => console.log('Demo mode - progress not saved'));
+        });
+
+        function showCompletionCelebration() {
+            // Create confetti effect
+            const colors = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+            for (let i = 0; i < 50; i++) {
+                const confetti = document.createElement('div');
+                confetti.innerHTML = '🎉✨🌟';
+                confetti.style.cssText = `
+                    position: fixed;
+                    left: ${Math.random() * 100}vw;
+                    top: -50px;
+                    font-size: ${Math.random() * 20 + 10}px;
+                    z-index: 10000;
+                    pointer-events: none;
+                    animation: fall ${Math.random() * 2 + 2}s linear forwards;
+                `;
+                confetti.style.color = colors[Math.floor(Math.random() * colors.length)];
+                document.body.appendChild(confetti);
+
+                setTimeout(() => confetti.remove(), 4000);
+            }
+
+            // Add animation if not exists
+            if (!document.querySelector('#confetti-animation')) {
+                const style = document.createElement('style');
+                style.id = 'confetti-animation';
+                style.textContent = `
+                    @keyframes fall {
+                        0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+                        100% { transform: translateY(100vh) rotate(360deg); opacity: 0; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Show modal
+            const modal = document.createElement('div');
+            modal.innerHTML = `
+                <div style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.3s ease;">
+                    <div style="background: white; padding: var(--spacing-xl); border-radius: var(--radius-lg); text-align: center; max-width: 400px; animation: slideUp 0.3s ease;">
+                        <div style="font-size: 4rem; color: var(--color-secondary); margin-bottom: var(--spacing-lg);">🎉</div>
+                        <h3 style="color: var(--color-primary); margin-bottom: var(--spacing-md);">Congratulations!</h3>
+                        <p style="color: var(--color-text-light); margin-bottom: var(--spacing-lg);">
+                            You've completed "{{.Tutorial.Title}}". Ready for the next challenge?
+                        </p>
+                        <button onclick="this.parentElement.parentElement.remove()" class="btn btn-primary">
+                            Continue Learning
+                        </button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal.firstElementChild);
+
+            // Add modal animations if not exists
+            if (!document.querySelector('#modal-animations')) {
+                const style = document.createElement('style');
+                style.id = 'modal-animations';
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes slideUp {
+                        from { transform: translateY(20px); opacity: 0; }
+                        to { transform: translateY(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+
+        // Code copy functionality
+        window.copyCode = function() {
+            const code = document.querySelector('.code-block code').innerText;
+            navigator.clipboard.writeText(code).then(() => {
+                alert('Code copied to clipboard!');
+            });
+        };
+
+        // Code run simulation
+        window.runCode = function() {
+            alert('In the full implementation, this would run the code example through the GoNeurotic API server.');
+        };
+
+        // Navigation buttons
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            alert('Previous tutorial navigation would work in the full implementation.');
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            alert('Next tutorial navigation would work in the full implementation.');
+        });
+    });
+</script>
+{{end}}
