@@ -9,3 +9,5 @@ require (
 	github.com/go-chi/cors v1.2.1
 	gonum.org/v1/gonum v0.17.0
 )
+
+require github.com/stretchr/testify v1.11.1 // indirect
