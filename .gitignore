@@ -25,6 +25,10 @@ go.work.sum
 /bin/
 /dist/
 /goneurotic
+/goneurotic-server
+
+# Model storage
+models/
 
 # Test coverage files
 coverage.out
@@ -34,10 +38,12 @@ coverage.html
 deps.png
 
 # Demo output files
-*.json
+*_pipeline.json
+*_model.json
+*.model
 *.csv
 *.png
 *.pdf
 
-# Default model file
+# Default model files
 model.json
