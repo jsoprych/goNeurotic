@@ -262,6 +262,108 @@ This release introduces a complete optimizer system with advanced algorithms, BL
 - Added `pkg/timeseries` API documentation with usage examples
 - Updated CLI help with new `-demo timeseries` option
 
+## [1.5.0] - 2026-02-05
+
+### 🎓 Educational Platform & S&P 500 Analysis Release
+
+This release introduces a complete educational web platform with interactive tutorials, visualization tools, and comprehensive S&P 500 financial time series analysis capabilities.
+
+#### Added
+- **Educational web server**: `cmd/goneurotic-learn` with modern, responsive UI
+- **Comprehensive syllabus**: 16-chapter learning path in `LEARNING_SYLLABUS.md`
+- **S&P 500 dataset**: Synthetic daily prices 2000-2025 with market crash simulations
+- **Interactive visualizations**: Neural network, XOR solver, time series, activation function explorers
+- **Dataset management API**: New `/api/v1/datasets/` endpoints for built-in datasets
+- **Web templates**: Complete HTML/CSS/JS frontend with progress tracking and badges
+- **Educational content**: Tutorial pages with learning objectives, exercises, and code examples
+
+#### Changed
+- **API server extended**: Added dataset endpoints and S&P 500 data access
+- **Time series pipeline**: Enhanced with S&P 500 dataset support
+- **Documentation**: Updated `RESTART_GUIDE.md` and `CONTEXT_SUMMARY.md` for educational platform
+- **Build system**: Added `goneurotic-learn` binary to compilation targets
+
+#### Features
+
+**Educational Platform:**
+- Modern colorful UI with responsive design (mobile-friendly)
+- Server-side rendering with Go templates
+- Progress tracking with badge system
+- Interactive visualization tools
+- API proxy connecting frontend to backend
+
+**S&P 500 Dataset:**
+- 6,525 trading days (2000-2025)
+- Realistic market simulations with 2008 (55% drop) and 2020 (30% drop) crashes
+- Recovery phases and bull market periods
+- Volatility clustering and trend modeling
+
+**Visualization Tools:**
+- Neural network architecture visualizer
+- XOR problem interactive solver with real-time training
+- Time series plotter with S&P 500 data and forecasts
+- Activation function explorer with mathematical properties
+
+#### Technical Implementation
+- **Web server**: Chi router with middleware (CORS, logging, recovery)
+- **Template system**: Go `html/template` with base layout and partials
+- **API integration**: Reverse proxy to `goneurotic-server` backend
+- **Dataset generation**: Synthetic S&P 500 with configurable parameters
+- **Educational content**: Structured tutorial system with completion tracking
+
+## [1.4.0] - 2026-02-04
+
+### 🚀 Production Time Series Forecasting & REST API Release
+
+This release delivers a complete production-ready time series forecasting system with real CSV data loading, walk-forward validation, feature engineering, and a full REST API server for model serving.
+
+#### Added
+- **Real CSV data loading**: Flexible parser for univariate/multivariate time series with built-in datasets
+- **Walk-forward validation**: Multiple validation methods preserving temporal order
+- **Exogenous feature engineering**: 27+ features including cyclical encoding and business indicators
+- **Statistical baseline library**: 9 forecasting methods with comprehensive metrics comparison
+- **Production forecasting pipeline**: End-to-end workflow with model persistence
+- **REST API server**: Complete HTTP/JSON interface for all GoNeurotic functionality
+- **API documentation**: `API_SERVER.md` with complete endpoint references and examples
+
+#### Changed
+- **Time series package**: Expanded with real-world data loading and production features
+- **CLI demos**: Added `-demo pipeline` and `-demo realts` for production forecasting
+- **Model persistence**: Enhanced with last window storage for immediate predictions
+- **Performance**: BLAS acceleration now fully integrated across all operations
+
+#### Features
+
+**Time Series Forecasting:**
+- AirPassengers dataset (144 monthly observations 1949-1960)
+- Feature engineering: date components, lag features, business indicators
+- Statistical baselines: Naive, Seasonal Naive, Moving Average, Exponential Smoothing, Holt-Winters, Linear Trend, Persistence, Drift, Theta
+- Evaluation metrics: RMSE, MAE, MAPE, SMAPE, R² with horizon-specific analysis
+
+**REST API Server:**
+- Neural network operations: train, predict, save, load, list, delete
+- Time series endpoints: quick forecast, pipeline management
+- Production features: CORS support, error handling, request limits, health checks
+- System endpoints: info, stats, monitoring
+
+**Production Pipeline:**
+- Data loading → preprocessing → training → evaluation → deployment
+- Model persistence with `Save()` and `LoadPipeline()`
+- Last window persistence for immediate predictions without retraining
+- Configurable validation strategies (walk-forward, holdout, expanding window)
+
+#### Performance
+- **BLAS acceleration**: 7.8× faster batch training maintained
+- **Memory optimization**: 30-40% fewer allocations compared to v1.3.0
+- **Training time**: ~140ms for 200 epochs on AirPassengers dataset
+- **API response**: < 100ms typical for neural network operations
+
+#### Documentation
+- `API_SERVER.md`: Complete API reference with curl examples
+- `RESTART_GUIDE.md`: Updated with production deployment guidance
+- `PERFORMANCE_REPORT.md`: Enhanced with time series performance metrics
+- Deployment guides: Docker, Kubernetes, reverse proxy configurations
+
 ## [1.0.0] - Initial Release
 
 ### Features
